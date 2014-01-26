@@ -58,7 +58,7 @@ var CreateConferenceWindowView = Backbone.View.extend({
         var $members = this.$selectedMembers.find('li');
         var members = [],
             msg_type = process.I_GROUP_CHAT_MESSAGE,
-            topic_name = $('.topic_name').val().trim() || null;
+            topic_name = $('.topic_name input').val().trim() || null;
             var names = [];
             _.each($members, function(member){
                 var id = $(member).data('id'); 

@@ -131,8 +131,9 @@ var MainWindowView = Backbone.View.extend({
         var topic_id = topic_ids && topic_ids[id];
         //获取topic再打开窗口
         var _openWindow = function(topic_id){
-            console.log(topic_id);
-            this.contact.topic_id = topic_id;
+            if(topic_id){
+                this.contact.topic_id = topic_id;
+            }
             process.currentConversationContact = this.contact;
             gui.Window.open('w_conference.html', {
                 width: 540,
@@ -153,6 +154,12 @@ var MainWindowView = Backbone.View.extend({
                     callback: _.bind(_openWindow, {
                         contact : contact
                     })
+                });
+            }else{
+                topic_ids[id] = contact.topic_id;
+                this.window.localCache.set('topic_ids', topic_ids);
+                _openWindow.apply({
+                    contact: contact
                 });
             }
         }else{
