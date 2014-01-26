@@ -1,0 +1,18 @@
+{
+    "LOGIN_AUTH": "/login_auth/",
+    "USER_GET_DETAILS": "/user/get_details/",
+    "USER_GET_CONTACTS": "/user/get_contacts/",
+    "USER_SET_STATUS": "/user/set_status/",
+    "USER_SEARCH": "/user/search/",
+    "DEPARTMENT_TREE": "/department/tree/",
+    "DEPARTMENT_MEMBERS": "/department/members/",
+    "TOPIC_CREATE": "/topic/create/",
+    "TOPIC_UPDATE_NAME": "/topic/update_name/",
+    "TOPIC_ADD_MEMBERS": "/topic/add_members/",
+    "TOPIC_RM_MEMBERS": "/topic/rm_members/",
+    "TOPIC_GET_TOPICS": "/topic/get_topics/",
+    "TOPIC_GET_MEMBERS": "/topic/get_members/",
+    "UPLOAD": "/upload/",
+    "AUDIO": "/audio/",
+    "VIDEO": "/video/"
+}
