@@ -35,14 +35,19 @@ process.sockjs.onmessage = function(e){
     //获取会话窗口
     var conferenceWindow = process.conferenceWindow || {};
     var sender = data.sender;
+    var $userList = process.mainWindow.view.$userList;
+    var $conferenceList = process.mainWindow.view.$conferenceList;
     switch(data.msg_type){
         case process.I_USERS_ONLINE:
-            process.mainWindow.view.changeUserStatus(data, "online");
+            process.mainWindow.view.changeUserStatus($userList, data, "online");
+            process.mainWindow.view.changeUserStatus($conferenceList, data, "online");
         break;
         case process.I_USERS_OFFLINE:
-            process.mainWindow.view.changeUserStatus(data);
+            process.mainWindow.view.changeUserStatus($userList, data);
+            process.mainWindow.view.changeUserStatus($conferenceList, data);
         break;
         case process.I_PRIVATE_CHAT_MESSAGE:
+        case process.I_GROUP_CHAT_MESSAGE:
             //1.2.1 通知会话窗口显示消息
             if(conferenceWindow.hasOwnProperty(sender)){
                 conferenceWindow[sender].view.onChat(data);
@@ -50,7 +55,7 @@ process.sockjs.onmessage = function(e){
             //1.2.2 把所有消息都保存到本地，客户端退出时清除
             process.mainWindow.EventHandler.saveMessages(process.mainWindow, data);
             //1.2.3 触发托盘图标闪动,联系人列表闪动
-            var contact = process.users_detail[data.sender];
+            var contact = process.contacts[data.sender];
             //如果来消息了
             if(process.conferenceWindow && process.conferenceWindow[data.sender]){
                 //如果窗口已经打开，不再闪动
@@ -58,7 +63,8 @@ process.sockjs.onmessage = function(e){
             }else{
                 //闪动
                //process.mainWindow.trayIconFlashOnMessage(contact);
-                process.mainWindow.view.userFlashOnMessage(contact);
+               //process.mainWindow.view.userFlashOnMessage(contact);
+                process.mainWindow.view.showUnreadMessage(contact, data.msg_type);
             }
 
         break;
@@ -85,7 +91,8 @@ var MainWindowView = Backbone.View.extend({
     initialize: function(){
         //当前窗口的实例
         this.window = this.options.window;
-        this.flashTimerMap = {};
+        //this.flashTimerMap = {};
+        this.unreadMessages = {};
         this.render();
     },
     openCreateConferenceWindow: function(e){
@@ -102,7 +109,7 @@ var MainWindowView = Backbone.View.extend({
     },
     openConferenceWindow: function(e){
         var $el = $(e.currentTarget);
-        var id = $el.attr('id'),
+        var id = $el.data('id'), //从集合查找的id属性
         type = $el.data('type');
         var contact = {};
         if(type === process.I_PRIVATE_CHAT_MESSAGE){
@@ -111,27 +118,48 @@ var MainWindowView = Backbone.View.extend({
         }else{
             contact = process.conferences[id];
         }
-        contact.type = type; 
-        process.currentConversationContact = contact;
+        contact.type = type;
 
-        var flashTimer = this.flashTimerMap[id] || {};
         //清除闪动图标,清除消息计数
-        if(flashTimer.timer){
-            clearInterval(flashTimer.timer);
-            delete this.flashTimerMap[id];
-            $el.find('.portrait img').attr('src', contact.portrait);
-        }
         if(process.conferenceWindow && process.conferenceWindow[id]){
             //打开或者切换到当前聊天对象的会话窗口
             process.conferenceWindow[id].appWindow.show();
             process.conferenceWindow[id].appWindow.focus();
             return;
         }
-        gui.Window.open('w_conference.html', {
-            width: 540,
-            height: 440,
-            position: 'left'
-        });
+        var topic_ids = this.window.localCache.get('topic_ids');
+        var topic_id = topic_ids && topic_ids[id];
+        //获取topic再打开窗口
+        var _openWindow = function(topic_id){
+            console.log(topic_id);
+            this.contact.topic_id = topic_id;
+            process.currentConversationContact = this.contact;
+            gui.Window.open('w_conference.html', {
+                width: 540,
+                height: 440,
+                position: 'left'
+            });
+        };
+        if(!topic_id){
+            if(type === process.I_PRIVATE_CHAT_MESSAGE){
+                var members = [process.user_id, id];
+                //从服务器获取topic_id
+                this.window.EventHandler.createTopic({
+                    body: {
+                        topic_type: type,
+                        topic_name: null,
+                        members: members
+                    },
+                    callback: _.bind(_openWindow, {
+                        contact : contact
+                    })
+                });
+            }
+        }else{
+            _openWindow.apply({
+                contact: contact
+            });
+        }
     },
     toggleList: function(){
         var $el = $(e.currentTarget);
@@ -145,7 +173,7 @@ var MainWindowView = Backbone.View.extend({
             this.$userList.hide();
         }
     },
-    changeUserStatus: function(data, status){
+    changeUserStatus: function($el, data, status){
         status || (status = 'offline');
         var statusCode = 0;
         switch(status){
@@ -155,7 +183,7 @@ var MainWindowView = Backbone.View.extend({
             case 'online':
                 statusCode = 1;
         }
-        var $userId = $('li[id="' + data.sender +'"]');
+        var $userId = $el.find('li[data-id="' + data.sender +'"]');
         var $parent = $userId.parent();
         $userId.remove();
         var $onlines = $parent.find('.nick_name:not(.offline)');
@@ -174,16 +202,39 @@ var MainWindowView = Backbone.View.extend({
         }
         var $nickName = $userId.find('.nick_name');
         $nickName.attr('class', 'nick_name ' + status);
-        process.users_detail[data.sender].status = statusCode;
+        process.contacts[data.sender].status = statusCode;
     },
-    userFlashOnMessage: function(contact){
+    showUnreadMessage: function(contact, type){
+        if(!contact){
+            console.log('没有联系人你show个啥!');
+            return;
+        }
+        if(!type){
+            console.log('服务器发来的联系人消息信息必须有类型');
+            return;
+        }
+        var id = type === process.I_PRIVATE_CHAT_MESSAGE ? contact.user_id: contact.topic_id,
+            view = this;
+        //用户列表图标闪动
+        var $userId = $('li[id="' + contact.user_id + '"]');
+        if(!this.unreadMessages && !_.isObject(this.unreadMessages)){
+            this.unreadMessages = {};
+        }
+        if(!this.unreadMessages.hasOwnProperty(user_id)){
+            this.flashTimerMap[user_id] = {
+                time: 0,
+                timer: null
+            };
+        }
+
+    },
+   /* userFlashOnMessage: function(contact){
         if(!contact){
             return;
         }
         var user_id = contact.user_id,
             view = this;
         //用户列表图标闪动
-        this.flash_time = 0;
         var $userId = $('li[id="' + contact.user_id + '"]');
         var $avatar = $userId.find('.portrait img'),
             $nickName = $userId.find('.nick_name');
@@ -210,6 +261,7 @@ var MainWindowView = Backbone.View.extend({
             flashTimer.time++;
         }, 500);
     },
+    */
     //切换会话和联系人窗口
     switchList: function(type){
         type || (type = 'contact');
@@ -231,68 +283,88 @@ var MainWindowView = Backbone.View.extend({
         }
     },
     initJQueryElement: function(){
-        this.$userList = this.$el.find('.users .list');
+        this.$userList = this.$el.find('.users');
+        this.$conferenceList = this.$el.find('.conferences');
     },
-    render: function(){
+    renderContactList: function(contacts){
         var view = this;
-        //请求推荐联系人列表
-        this.window.EventHandler.getContacts(function(contacts){
-            process.contacts = contacts;
-            //contacts 根据状态0和非0排序
-            //转化为数组
-            var contactArr = [];
-            _.each(contacts, function(contact, user_id){
-                contact.user_id = user_id;
-                contact.class_name = contact.status === 0 ? 'nick_name offline': 'nick_name';
-                contactArr.push(contact);
+        console.log(this);
+        process.contacts = contacts;
+        //contacts 根据状态0和非0排序
+        //转化为数组
+        var contactArr = [];
+        _.each(contacts, function(contact, user_id){
+            contact.user_id = user_id;
+            contact.id = user_id;
+            contact.class_name = contact.status === 0 ? 'nick_name offline': 'nick_name';
+            contactArr.push(contact);
+        });
+        var groupContact = _.groupBy(contactArr, function(contact){
+            return contact.status;
+        });
+        contactArr = [];
+        _.each(groupContact, function(contacts, group){
+            contacts.sort(function(a, b){
+                return a.nick_name > b.nick_name ? -1: 1;
             });
-            var groupContact = _.groupBy(contactArr, function(contact){
-                return contact.status;
-            });
-            contactArr = [];
-            _.each(groupContact, function(contacts, group){
-                contacts.sort(function(a, b){
-                    return a.nick_name > b.nick_name ? -1: 1;
-                });
-                contactArr = contactArr.concat(contacts);
-            });
-            contactArr = contactArr.reverse();
-            view.window.EventHandler.getTopics(function(ret){
-                var conferences = process.conferences = ret.data;
-                _.each(conferences, function(conference, topic_id){
-                    conference.topic_id = topic_id;
-                    if(conference.topic_type === process.I_PRIVATE_CHAT_MESSAGE){
-                        //前端处理私聊的会话显示名称
-                        var ids = conference.topic_id.split(process.CONFERENCE_SPLIT_FLAG);
-                        var targetId = '';
-                        _.each(ids, function(id){
-                            if(id !== process.user_id){
-                                targetId = id;
-                            }
-                        });
-                        //获取私聊对象的昵称
-                        var contact  = process.users_detail[targetId];
-                        //覆盖私聊会话名称
-                        conference.topic_name = contact.nick_name;
-                        conference.portrait =  contact.portrait;
-                        conference.status = contact.status;
-                        conference.class_name = contact.status === 0 ? 'nick_name offline': 'nick_name';
-                    }else{
-                        conference.portrait = 'images/profile/group.png';
+            contactArr = contactArr.concat(contacts);
+        });
+        contactArr = contactArr.reverse();
+        var template = view.window.DocumentTemplate.main_contacts_tpl.join('');
+        //渲染个人信息和推荐联系人信息
+        var _template = _.template(template, {
+            contacts: contactArr,
+            _: _
+        });
+        view.$userList.html(_template);
+        //第一次渲染列表
+        if(this.isRenderConference){
+            this.window.EventHandler.getTopics(_.bind(this.renderConferenceList, this));
+            this.isRenderConference = false;
+        }
+    },
+    renderConferenceList: function(conferences){
+        var view = this;
+        process.conferences = conferences;
+        _.each(conferences, function(conference, topic_id){
+            conference.topic_id = topic_id;
+            if(conference.topic_type === process.I_PRIVATE_CHAT_MESSAGE){
+                //前端处理私聊的会话显示名称
+                var ids = conference.topic_id.split(process.CONFERENCE_SPLIT_FLAG);
+                var targetId = '';
+                _.each(ids, function(id){
+                    if(id !== process.user_id){
+                        targetId = id;
                     }
                 });
-                var template = view.window.DocumentTemplate.main_tpl.join('');
-                //渲染个人信息和推荐联系人信息
-                var _template = _.template(template, {
-                    conferences: conferences,
-                    contacts: contactArr,
-                    _: _,
-                    user_detail: contacts[process.user_id]
-                });
-                view.$el.html(_template);
-                view.initJQueryElement();
-            });
+                //获取私聊对象的昵称
+                var contact  = process.contacts[targetId];
+                //覆盖私聊会话名称
+                conference.topic_name = contact.nick_name;
+                conference.portrait =  contact.portrait;
+                conference.status = contact.status;
+                conference.class_name = contact.status === 0 ? 'nick_name offline': 'nick_name';
+                conference.id = targetId;
+            }else{
+                conference.id = topic_id;
+                conference.portrait = 'images/profile/group.png';
+            }
         });
+        var template = view.window.DocumentTemplate.main_conferences_tpl.join('');
+        //渲染个人信息和推荐联系人信息
+        var _template = _.template(template, {
+            conferences: conferences,
+            _: _
+        });
+        view.$conferenceList.html(_template);
+    },
+    render: function(){
+        var template = this.window.DocumentTemplate.main_tpl.join('');
+        this.$el.html(template);
+        this.initJQueryElement();
+        //请求推荐联系人列表, 然后获取会话列表
+        this.isRenderConference = true;
+        this.window.EventHandler.getContacts(_.bind(this.renderContactList, this));
     },
     destroy: function(){
     }
@@ -366,7 +438,8 @@ var MainWindow = Window.extend({
         });
     },
     //来消息时闪动
-    trayIconFlashOnMessage: function(contact){
+    /*
+     trayIconFlashOnMessage: function(contact){
         if(!contact){
             throw new Error('没有联系人图标你闪啥！');
         }
@@ -396,6 +469,7 @@ var MainWindow = Window.extend({
             this.appTray.icon = this.IMAGE.EMPTY;
         }
     },
+    */
     initBackBoneView: function(){
         MainWindow.superclass.initBackBoneView.call(this);
         this.view = new MainWindowView({

@@ -21,38 +21,11 @@ var ConferenceWindowView = Backbone.View.extend({
                 msg_type = this.type,
                 target = this.target,
                 token = process.token,
-                topic_name = null;
+                topic_name = null,
+                timestamp = new Date().getTime();
 
-            //topic_ids 永久性的缓存到本地
-            var topic_ids = this.window.localCache.get('topic_ids');
-            var topic_id = topic_ids && topic_ids[target];
-            var timestamp = new Date().getTime();
-            if(!topic_id){
-                if(msg_type === process.I_PRIVATE_CHAT_MESSAGE){
-                    var members = [user_id, target];
-                    //从服务器获取topic_id
-                    this.window.EventHandler.createTopic({
-                        body: {
-                            topic_type: msg_type,
-                            topic_name: topic_name,
-                            members: members
-                        },
-                        timestamp: timestamp,
-                        message: content,
-                        callback: _.bind(this.sendMessage, this)
-                    });
-                }else{
-                    //群聊天的id即为topic_id
-                    topic_id = this.contact.topic_id;
-                    view.sendMessage({
-                        topic_id: topic_id,
-                        message: content,
-                        msg_type: msg_type,
-                        user_id: user_id,
-                        timestamp: timestamp
-                    });
-                }
-            }else{
+                //群聊天的id即为topic_id
+                topic_id = this.topic_id;
                 view.sendMessage({
                     topic_id: topic_id,
                     message: content,
@@ -60,7 +33,6 @@ var ConferenceWindowView = Backbone.View.extend({
                     user_id: user_id,
                     timestamp: timestamp
                 });
-            }
             //即时发送让用户直接看到自己发送的信息
             this.appendToConversation(user_id, content, timestamp);
             this.setContent('');
@@ -94,7 +66,7 @@ var ConferenceWindowView = Backbone.View.extend({
         };
         var messageBody = JSON.stringify(body);
         process.sockjs.send(messageBody);
-        process.mainWindow.EventHandler.saveMessages(this.window, body);
+        process.mainWindow.EventHandler.saveMessages(this.window, body, topic_id);
         var topic_ids = this.window.localCache.get('topic_ids');
         if(!_.isObject(topic_ids)){
             topic_ids = {};
@@ -108,7 +80,7 @@ var ConferenceWindowView = Backbone.View.extend({
     },
     //定义了发送消息的显示样式
     getSendMessage: function(sender, content, timestamp){
-        var user =  process.users_detail[sender];
+        var user =  process.contacts[sender];
         var nickName = user.nick_name,
             portrait = user.portrait;
         var msgClass = 'wraper_left';
@@ -139,6 +111,7 @@ var ConferenceWindowView = Backbone.View.extend({
         this.contact = process.currentConversationContact;
         this.type = this.contact.type;
         this.target = this.type === process.I_PRIVATE_CHAT_MESSAGE ? this.contact.user_id: this.contact.topic_id;
+        this.topic_id = this.contact.topic_id;
         document.title = '与' + this.contact.nick_name + '聊天';
         this.render();
     },
@@ -203,8 +176,9 @@ if(!process.conferenceWindow){
 if(!process.currentConversationContact){
     console.log('当前会话窗口无对象!!!!');
 }else{
-    var user_id = process.currentConversationContact.user_id;
-    process.conferenceWindow[user_id] = new ConferenceWindow({
+    var id = process.currentConversationContact.id;
+    
+    process.conferenceWindow[id] = new ConferenceWindow({
         name: 'conference',
         classType: 'window',
         Backbone: Backbone,
@@ -220,9 +194,9 @@ if(!process.currentConversationContact){
 document.body.onkeyup = function(e){
     if(e.keyCode === 13){
         if(!e.ctrlKey)
-            process.conferenceWindow[user_id].view.$send.click();
+            process.conferenceWindow[id].view.$send.click();
     }
  };
 
- process.windows.push(process.conferenceWindow[user_id]);
+ process.windows.push(process.conferenceWindow[id]);
 

@@ -62,7 +62,7 @@ var CreateConferenceWindowView = Backbone.View.extend({
             var names = [];
             _.each($members, function(member){
                 var id = $(member).data('id'); 
-                var name = process.users_detail[id].nick_name;
+                var name = process.contacts[id].nick_name;
                 members.push(id);
                 names.push(name);
             });

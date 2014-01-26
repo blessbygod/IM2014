@@ -89,7 +89,7 @@ var EventHandler = {
             url: url,
             body: body,
             callback: function(ret){
-                process.users_detail = ret.data;
+                process.contacts = ret.data;
                 if(callback){
                     callback(ret.data);
                 }
@@ -115,7 +115,7 @@ var EventHandler = {
             url: url,
             callback: function(ret){
                 if(callback){
-                   callback(ret);
+                   callback(ret.data);
                 }
             }
         });
@@ -132,13 +132,7 @@ var EventHandler = {
             callback: function(ret){
                 var topic_id = ret.data.topic_id;
                 if(params.callback){
-                    params.callback({
-                        topic_id: topic_id,
-                        message: params.message,
-                        msg_type: body.topic_type,
-                        user_id: body.user_id,
-                        timestamp: body.timestamp
-                    });
+                    params.callback.apply(this, [topic_id]);
                 }
            }
         });
@@ -170,17 +164,16 @@ var EventHandler = {
             }
         });
     },
-    saveMessages: function(win, data){
-        var sender = data.sender;
+    saveMessages: function(win, data, id){
         var messages = win.localCache.get('messages');
         if(!messages){
             messages = {};
         }
         //所有的消息存储
-        if(!messages.hasOwnProperty(sender)){
-            messages[sender] = [];
+        if(!messages.hasOwnProperty(id)){
+            messages[id] = [];
         }
-        messages[sender].push(data);
+        messages[id].push(data);
         win.localCache.set('messages', messages);
     },
     closeWindow: function(windows){
