@@ -37,6 +37,10 @@ process.sockjs.onmessage = function(e){
     var sender = data.sender;
     var $userList = process.mainWindow.view.$userList;
     var $conferenceList = process.mainWindow.view.$conferenceList;
+    var id = data.topic_id;
+    if(data.msg_type === process.I_PRIVATE_CHAT_MESSAGE){
+        id = data.user_id;
+    }
     switch(data.msg_type){
         case process.I_USERS_ONLINE:
             process.mainWindow.view.changeUserStatus($userList, data, "online");
@@ -53,7 +57,7 @@ process.sockjs.onmessage = function(e){
                 conferenceWindow[sender].view.onChat(data);
             }
             //1.2.2 把所有消息都保存到本地，客户端退出时清除
-            process.mainWindow.EventHandler.saveMessages(process.mainWindow, data);
+            process.mainWindow.EventHandler.saveMessages(process.mainWindow, data, id);
             //1.2.3 触发托盘图标闪动,联系人列表闪动
             var contact = process.contacts[data.sender];
             //如果来消息了
