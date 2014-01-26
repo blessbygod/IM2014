@@ -277,8 +277,10 @@ var MainWindowView = Backbone.View.extend({
         type || (type = 'contact');
         switch(type){
             case 'contact':
+                this.window.EventHandler.getContacts(_.bind(this.renderContactList, this));
                 break;
             case 'conference':
+                this.window.EventHandler.getTopics(_.bind(this.renderConferenceList, this));
                 break;
         }
     },
