@@ -38,8 +38,10 @@ process.sockjs.onmessage = function(e){
     var $userList = process.mainWindow.view.$userList;
     var $conferenceList = process.mainWindow.view.$conferenceList;
     var id = data.topic_id;
+    var contact = process.conferences[id];
     if(data.msg_type === process.I_PRIVATE_CHAT_MESSAGE){
         id = data.user_id;
+        contact = process.contacts[id];
     }
     switch(data.msg_type){
         case process.I_USERS_ONLINE:
@@ -53,15 +55,14 @@ process.sockjs.onmessage = function(e){
         case process.I_PRIVATE_CHAT_MESSAGE:
         case process.I_GROUP_CHAT_MESSAGE:
             //1.2.1 通知会话窗口显示消息
-            if(conferenceWindow.hasOwnProperty(sender)){
-                conferenceWindow[sender].view.onChat(data);
+            if(conferenceWindow.hasOwnProperty(id)){
+                conferenceWindow[id].view.onChat(data);
             }
             //1.2.2 把所有消息都保存到本地，客户端退出时清除
             process.mainWindow.EventHandler.saveMessages(process.mainWindow, data, id);
             //1.2.3 触发托盘图标闪动,联系人列表闪动
-            var contact = process.contacts[data.sender];
             //如果来消息了
-            if(process.conferenceWindow && process.conferenceWindow[data.sender]){
+            if(process.conferenceWindow && process.conferenceWindow[id]){
                 //如果窗口已经打开，不再闪动
                 //如果窗口打开并最小化到任务栏，任务栏的图标会闪动
             }else{
@@ -227,15 +228,11 @@ var MainWindowView = Backbone.View.extend({
         var id = type === process.I_PRIVATE_CHAT_MESSAGE ? contact.user_id: contact.topic_id,
             view = this;
         //用户列表图标闪动
-        var $userId = $('li[id="' + contact.user_id + '"]');
+        var $userId = $('li[data-id="' + contact.id + '"]');
         if(!this.unreadMessages && !_.isObject(this.unreadMessages)){
             this.unreadMessages = {};
         }
-        if(!this.unreadMessages.hasOwnProperty(user_id)){
-            this.flashTimerMap[user_id] = {
-                time: 0,
-                timer: null
-            };
+        if(!this.unreadMessages.hasOwnProperty(id)){
         }
 
     },

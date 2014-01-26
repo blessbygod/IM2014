@@ -113,12 +113,14 @@ var ConferenceWindowView = Backbone.View.extend({
         if(this.type === process.I_PRIVATE_CHAT_MESSAGE){
             this.target = this.contact.user_id;
             this.name = this.contact.nick_name;
+            this.title = '与' + this.name + '聊天';
         }else{
             this.target = this.contact.topic_id;
             this.name = this.contact.topic_name;
+            this.title = '群(' + this.name + ')';
         }
+        document.title = this.title;
         this.topic_id = this.contact.topic_id;
-        document.title = '与' + this.name + '聊天';
         this.render();
     },
     initJQueryElement: function(){
