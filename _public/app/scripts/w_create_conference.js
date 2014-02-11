@@ -191,6 +191,7 @@ var CreateConferenceWindowView = Backbone.View.extend({
     },
     renderMembersStatus: function($members){
         //切换members的成员选择状态
+        var view = this;
         $members.find('li.member').each(function(e){
             var $member = $(this);
             var id = $member.data('id');
