@@ -19,7 +19,6 @@ var ConferenceWindowView = Backbone.View.extend({
             var content = this.getContent(),
                 user_id = process.user_id,
                 msg_type = this.type,
-                target = this.target,
                 token = process.token,
                 topic_name = null,
                 timestamp = new Date().getTime();
@@ -71,8 +70,7 @@ var ConferenceWindowView = Backbone.View.extend({
         if(!_.isObject(topic_ids)){
             topic_ids = {};
         }
-        topic_ids[this.target] = topic_id;
-        console.log(topic_ids);
+        topic_ids[this.id] = topic_id;
         this.window.localCache.set('topic_ids', topic_ids);
     },
     onChat: function(data){
@@ -111,15 +109,14 @@ var ConferenceWindowView = Backbone.View.extend({
         this.contact = process.currentConversationContact;
         this.type = this.contact.type;
         if(this.type === process.I_PRIVATE_CHAT_MESSAGE){
-            this.target = this.contact.user_id;
             this.name = this.contact.nick_name;
             this.title = '与' + this.name + '聊天';
         }else{
-            this.target = this.contact.topic_id;
             this.name = this.contact.topic_name;
             this.title = '群(' + this.name + ')';
         }
         document.title = this.title;
+        this.id = this.contact.id;
         this.topic_id = this.contact.topic_id;
         this.render();
     },
@@ -127,6 +124,7 @@ var ConferenceWindowView = Backbone.View.extend({
         this.$textarea = this.$el.find('.editor');
         this.$conversation = this.$el.find('.conversation');
         this.$send = this.$el.find('.send_message');
+        this.$members = this.$el.find('.conference_members');
     },
     initWYSIWYG: function(){
         //暂时使用纯文本的
@@ -137,24 +135,44 @@ var ConferenceWindowView = Backbone.View.extend({
         if(!messages){
             return;
         }else{
-            console.log(this.target);
+            console.log(this.id);
             console.log(messages);
         }
-        var curr_messages = messages[this.target];
+        var curr_messages = messages[this.id];
         if(_.isObject(messages) && curr_messages){
             _.each(curr_messages, function(data){
                view.appendToConversation(data.sender, data.msg_content.chat_msg, data.timestamp);
             });
         }
     },
+    //初始化会话成员
+    initTopicMembers: function(){
+        var view = this;
+        console.log('topic_id:' + this.topic_id);
+        view.window.EventHandler.getTopicMembers({
+            body: {
+                topic_id: this.topic_id
+            },
+            callback: function(data){
+                var members = data.members;
+                view.window.EventHandler.getDetails(data.members, function(contacts){    
+                    var template = view.window.EventHandler.getContactsTemplate(contacts);
+                    view.$members.append(template);
+                });
+            }
+        });
+    },
     render: function(){
         var view = this;
         var template = view.window.DocumentTemplate.conference_tpl.join('');
-        view.$el.html(template);
+        console.log(this);
+        var _template = _.template(template, this);
+        view.$el.html(_template);
         view.initJQueryElement();
         view.initWYSIWYG();
         view.$textarea.focus();
         view.initOfflineMessages();
+        view.initTopicMembers();
     },
     destroy: function(){
     }
@@ -167,7 +185,7 @@ var ConferenceWindow = Window.extend({
         this.appWindow.focus();
     },
     initBackBoneView: function(){
-       // ConferenceWindow.superclass.initBackBoneView.call(this);
+        ConferenceWindow.superclass.initBackBoneView.call(this);
         this.view = new ConferenceWindowView({
             window: this
         });
@@ -185,7 +203,6 @@ if(!process.currentConversationContact){
     console.log('当前会话窗口无对象!!!!');
 }else{
     var id = process.currentConversationContact.id;
-    
     process.conferenceWindow[id] = new ConferenceWindow({
         name: 'conference',
         classType: 'window',

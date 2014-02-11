@@ -20,6 +20,10 @@ ul li{
 
 
 /* mainWindow */
+.list_panel{
+    height: 540px;
+    overflow: auto;
+}
 .offline{
     color: #aaa;
 }
@@ -37,9 +41,12 @@ ul li{
     /* 背景图生效必须是bfc 单独容器 block,并且必须有background-position */
     /* 背景图缩小放大 还得用size 来缩放  */
 }
+.unread_messages_count{
+    color: red;
+}
 /* conferenceWindow */
 .chat_panel{
-    width: 99%;
+    width: 70%;
     height: 80%;
     border-width: 1px;
     border-color: silver;
@@ -53,7 +60,7 @@ ul li{
 
 .editor{
     overflow-y: auto;
-    width: 99%;
+    width: 70%;
     height: 80px;
 }
 
@@ -64,6 +71,10 @@ ul li{
     padding-bottom: 32px;
 }
 
+.conference_members{
+    overflow: hidden;
+    height: 100%;
+}
 /*  会话聊天信息上面的时间条 */
 .local_time{
     text-align: center;
@@ -214,4 +225,6 @@ ul li{
     width: 99%;
 }
 
-
+.member{
+    cursor: pointer;
+}

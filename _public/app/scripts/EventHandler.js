@@ -1,6 +1,7 @@
 var config = require('../config'),
 _ = require('underscore'),
-request = require('request');
+request = require('request'),
+DocumentTemplate = require('./DocumentTemplate');
 
 
 var g_urlRouter = config.get('url_router.json');
@@ -24,11 +25,11 @@ var EventHandler = {
             try{
                 ret = JSON.parse(res.body);
             }catch(e){
-                console.log('[' + url + ']body parse error:' + res.body);
+                console.error('[' + url + ']body parse error:' + res.body);
                 return;
             }
             if(ret.err_code !== 0){
-                console.log('err_code ' + ret.err_code + ':' + ret.msg);
+                console.error('err_code ' + ret.err_code + ':' + ret.msg);
                 return;
             }
             if(params.callback){
@@ -80,6 +81,7 @@ var EventHandler = {
             }
         });
     },
+    //获取联系人的详细信息
     getDetails: function(ids, callback){
         var url = process.SupportServerURL + g_urlRouter.USER_GET_DETAILS;
         var body = {
@@ -89,13 +91,13 @@ var EventHandler = {
             url: url,
             body: body,
             callback: function(ret){
-                process.contacts = ret.data;
                 if(callback){
                     callback(ret.data);
                 }
             }
         });
     },
+    //获取联系人
     getContacts: function(callback){
         var handler = this;
         var url = process.SupportServerURL + g_urlRouter.USER_GET_CONTACTS;
@@ -120,12 +122,24 @@ var EventHandler = {
             }
         });
     },
+    //获取单个会话成员列表
+    getTopicMembers: function(params){
+        var url = process.SupportServerURL + g_urlRouter.TOPIC_GET_MEMBERS;
+        this.request({
+            url: url,
+            body: params.body,
+            callback: function(ret){
+                if(params.callback){
+                   params.callback(ret.data);
+                }
+            }
+        });
+    },
     //创建会话，并返回会话ID
     createTopic: function(params){
         var handler = EventHandler;
         var url = process.SupportServerURL + g_urlRouter.TOPIC_CREATE;
         var body = params.body;
-        console.log(body);
         handler.request({
             url: url,
             body: body,
@@ -136,6 +150,34 @@ var EventHandler = {
                 }
            }
         });
+    },
+    //获取渲染联系人的HTML
+    getContactsTemplate: function(contacts){
+         var contactArr = [];
+        _.each(contacts, function(contact, user_id){
+            contact.user_id = user_id;
+            contact.id = user_id;
+            contact.class_name = contact.status === 0 ? 'nick_name offline': 'nick_name';
+            contactArr.push(contact);
+        });
+        var groupContact = _.groupBy(contactArr, function(contact){
+            return contact.status;
+        });
+        contactArr = [];
+        _.each(groupContact, function(contacts, group){
+            contacts.sort(function(a, b){
+                return a.nick_name > b.nick_name ? -1: 1;
+            });
+            contactArr = contactArr.concat(contacts);
+        });
+        contactArr = contactArr.reverse();
+        var template = DocumentTemplate.main_contacts_tpl.join('');
+        //渲染个人信息和推荐联系人信息
+        var _template = _.template(template, {
+            contacts: contactArr,
+            _: _
+        });
+        return _template;
     },
     //获取部门树结构，用来创建临时会话
     getDeptTreeData: function(params){
@@ -191,7 +233,7 @@ var EventHandler = {
                         }
                     }
                     if(win.params.name === 'conference'){
-                        delete process.conferenceWindow[win.view.target];
+                        delete process.conferenceWindow[win.view.id];
                     }else{
                         delete process[win.params.name + 'Window'];
                     }

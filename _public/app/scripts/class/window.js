@@ -1,29 +1,35 @@
 var Base = require('../base/base'),
  _ = require('underscore'),
  uuid = require('uuid'),
-Cache = require('../class/cache');
- 
+Cache = require('../class/cache'),
+Logger = require('../../logger');
 
 /*
  * 窗口的基础类，实现模板的初始化，渲染，销毁的接口
  * 
  * */
+var logger =  new Logger(window.navigator.userAgent);
 var Window = Base.extend({
     initialize: function(params){
-        this.params = params;
-        //初始化全局变量
-        this.initGlobalVar();
-        this.initCache();
-        //初始化客户端APP的菜单，菜单功能等
-        this.initAppItems();
-        //初始化公共DOM模板，页头，页脚
-        this.initDocumentTemplate();
-        //初始化全局配置
-        this.initGlobalConfig();
-        //渲染当前文档模板
-        this.initBackBoneView();
-        //更新localCache的storage对象
-        Window.superclass.initialize.call(this, params);
+        logger.info('window initializing....');
+        try{
+            this.params = params;
+            //初始化全局变量
+            this.initGlobalVar();
+            this.initCache();
+            //初始化客户端APP的菜单，菜单功能等
+            this.initAppItems();
+            //初始化公共DOM模板，页头，页脚
+            this.initDocumentTemplate();
+            //初始化全局配置
+            this.initGlobalConfig();
+            //渲染当前文档模板
+            this.initBackBoneView();
+            //更新localCache的storage对象
+            Window.superclass.initialize.call(this, params);
+        }catch(e){
+            logger.error('当前窗口初始化碰到问题:' + e.message);
+        }
     },
     initCache: function(){
         this.localCache = new Cache(this.params.localStorage);

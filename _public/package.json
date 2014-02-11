@@ -1,12 +1,12 @@
 {
     "name": "im",
-    "version": "1.0",
+    "version": "1.0.0",
     "author": "lisen",
     "main": "app/w_login.html",
     "window":{
         "icon": "app/images/mail.png",
-        "toolbar": false,
-        "frame": false,
+        "toolbar": true,
+        "frame": true,
         "position": "center",
         "resizable": false,
         "width": 400,
@@ -23,7 +23,7 @@
       "uuid": "*",
       "request": "*",
       "detector": "*",
-      "qunitjs": "*"
+      "log4js": "*"
     }
 }
 

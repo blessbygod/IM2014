@@ -8,7 +8,6 @@
   //  - https://github.com/joyent/node/blob/master/lib/util.js
   //  - https://github.com/kissyteam/kissy/blob/master/src/seed/src/kissy.js
 
-
   // The base Class implementation.
   function Class(o) {
     // Convert existed function to Class.
@@ -50,7 +49,7 @@
 
       // Only call initialize in self constructor.
       if (this.constructor === SubClass && this.initialize) {
-        this.initialize.apply(this, arguments)
+          this.initialize.apply(this, arguments)
       }
     }
 

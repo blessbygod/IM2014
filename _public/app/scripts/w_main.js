@@ -4,14 +4,18 @@ _ = require('underscore'),
 uuid = require('uuid'),
 gui = require('nw.gui'),
 detector = require('detector'),
-Backbone = require('backbone')(this);
+utils = require('./utils'),
+Backbone = require('backbone')(this),
+Logger = require('./logger');
+
+var logger = new Logger(this.navigator.userAgent);
 
 //1.0 建立同服务器的唯一的长连接，用来收发消息
 process.sockjs = new SockJS(process.MsgServerURL + '/sockjs');
 
 //1.1 长连接打开
 process.sockjs.onopen = function(e){
-    console.log('validate token for long connect!');
+    logger.info('validate token for long connect!');
     //把从support服务器获取的token从长连接发往Msg服务器，校验token是否有效
     process.sockjs.send(JSON.stringify({
         uuid: uuid.v1(),
@@ -25,12 +29,12 @@ process.sockjs.onopen = function(e){
 };
 //1.2 消息触发
 process.sockjs.onmessage = function(e){
-    console.log('----服务器来的消息----:\r\n' + JSON.stringify(e.data));
+    logger.info('----服务器来的消息----:\r\n' + JSON.stringify(e.data));
     var data = {};
     try{
         data = JSON.parse(e.data);
     }catch(err){
-        console.log(err.message);
+        logger.error(err.message);
     }
     //获取会话窗口
     var conferenceWindow = process.conferenceWindow || {};
@@ -40,7 +44,7 @@ process.sockjs.onmessage = function(e){
     var id = data.topic_id;
     var contact = process.conferences[id];
     if(data.msg_type === process.I_PRIVATE_CHAT_MESSAGE){
-        id = data.user_id;
+        id = sender;
         contact = process.contacts[id];
     }
     switch(data.msg_type){
@@ -57,21 +61,14 @@ process.sockjs.onmessage = function(e){
             //1.2.1 通知会话窗口显示消息
             if(conferenceWindow.hasOwnProperty(id)){
                 conferenceWindow[id].view.onChat(data);
-            }
-            //1.2.2 把所有消息都保存到本地，客户端退出时清除
-            process.mainWindow.EventHandler.saveMessages(process.mainWindow, data, id);
-            //1.2.3 触发托盘图标闪动,联系人列表闪动
-            //如果来消息了
-            if(process.conferenceWindow && process.conferenceWindow[id]){
-                //如果窗口已经打开，不再闪动
-                //如果窗口打开并最小化到任务栏，任务栏的图标会闪动
             }else{
                 //闪动
                //process.mainWindow.trayIconFlashOnMessage(contact);
                //process.mainWindow.view.userFlashOnMessage(contact);
                 process.mainWindow.view.showUnreadMessage(contact, data.msg_type);
             }
-
+            //1.2.2 把所有消息都保存到本地，客户端退出时清除
+            process.mainWindow.EventHandler.saveMessages(process.mainWindow, data, id);
         break;
         //服务器返回token已失效的信息
         case process.I_VALIDATE_TOKEN_ERR:
@@ -80,7 +77,7 @@ process.sockjs.onmessage = function(e){
 };
 //服务器connetor关闭事件
 process.sockjs.onclose = function(e){
-    console.log(e);
+    logger.error(e);
 };
 //服务器connecotr错误事件
 process.sockjs.onerror = function(){
@@ -109,10 +106,13 @@ var MainWindowView = Backbone.View.extend({
         gui.Window.open('w_create_conference.html', {
             width: 640,
             height: 440,
-            position: 'left'
+            position: 'left',
+            frame: false,
+            toolbar: false
         });
     },
     openConferenceWindow: function(e){
+        var view = this;
         var $el = $(e.currentTarget);
         var id = $el.data('id'), //从集合查找的id属性
         type = $el.data('type');
@@ -136,6 +136,11 @@ var MainWindowView = Backbone.View.extend({
         var topic_id = topic_ids && topic_ids[id];
         //获取topic再打开窗口
         var _openWindow = function(topic_id){
+            if(view.unreadMessages.hasOwnProperty(id)){
+                delete view.unreadMessages[id];
+                var selector = 'li' + utils.getDataIdSelector(id);
+                $(selector).find('.unread_messages_count').text('');
+            }
             if(topic_id){
                 this.contact.topic_id = topic_id;
             }
@@ -143,7 +148,9 @@ var MainWindowView = Backbone.View.extend({
             gui.Window.open('w_conference.html', {
                 width: 540,
                 height: 440,
-                position: 'left'
+                position: 'left',
+                frame: false,
+                toolbar: false
             });
         };
         if(!topic_id){
@@ -195,7 +202,8 @@ var MainWindowView = Backbone.View.extend({
             case 'online':
                 statusCode = 1;
         }
-        var $userId = $el.find('li[data-id="' + data.sender +'"]');
+        var selector = 'li' + utils.getDataIdSelector(data.sender);
+        var $userId = $el.find(selector);
         var $parent = $userId.parent();
         $userId.remove();
         var $onlines = $parent.find('.nick_name:not(.offline)');
@@ -227,14 +235,20 @@ var MainWindowView = Backbone.View.extend({
         }
         var id = type === process.I_PRIVATE_CHAT_MESSAGE ? contact.user_id: contact.topic_id,
             view = this;
-        //用户列表图标闪动
-        var $userId = $('li[data-id="' + contact.id + '"]');
+        //未读消息数目 
+        var selector = 'li' + utils.getDataIdSelector(contact.id);
+        var $userId = $(selector);
         if(!this.unreadMessages && !_.isObject(this.unreadMessages)){
             this.unreadMessages = {};
         }
         if(!this.unreadMessages.hasOwnProperty(id)){
+            this.unreadMessages[id] = {
+                count: 1
+            };
+        }else{
+            this.unreadMessages[id].count += 1;
         }
-
+        $userId.find('.unread_messages_count').text(this.unreadMessages[id].count);
     },
    /* userFlashOnMessage: function(contact){
         if(!contact){
@@ -293,44 +307,26 @@ var MainWindowView = Backbone.View.extend({
         }
     },
     initJQueryElement: function(){
+        this.$userDetail = this.$el.find('.user_detail');
         this.$userList = this.$el.find('.users');
         this.$conferenceList = this.$el.find('.conferences');
     },
     renderContactList: function(contacts){
-        var view = this;
-        console.log(this);
+        try{
         process.contacts = contacts;
-        //contacts 根据状态0和非0排序
-        //转化为数组
-        var contactArr = [];
-        _.each(contacts, function(contact, user_id){
-            contact.user_id = user_id;
-            contact.id = user_id;
-            contact.class_name = contact.status === 0 ? 'nick_name offline': 'nick_name';
-            contactArr.push(contact);
-        });
-        var groupContact = _.groupBy(contactArr, function(contact){
-            return contact.status;
-        });
-        contactArr = [];
-        _.each(groupContact, function(contacts, group){
-            contacts.sort(function(a, b){
-                return a.nick_name > b.nick_name ? -1: 1;
-            });
-            contactArr = contactArr.concat(contacts);
-        });
-        contactArr = contactArr.reverse();
-        var template = view.window.DocumentTemplate.main_contacts_tpl.join('');
-        //渲染个人信息和推荐联系人信息
-        var _template = _.template(template, {
-            contacts: contactArr,
-            _: _
-        });
-        view.$userList.html(_template);
+        process.currentUser = contacts[process.user_id];
+        var template = this.window.DocumentTemplate.main_user_detail_tpl.join('');
+        var _template = _.template(template, process.currentUser);
+        this.$userDetail.html(_template);
+        template = this.window.EventHandler.getContactsTemplate(contacts);
+        this.$userList.html(template);
         //第一次渲染列表
         if(this.isRenderConference){
             this.window.EventHandler.getTopics(_.bind(this.renderConferenceList, this));
             this.isRenderConference = false;
+        }
+        }catch(e){
+            logger.error(e.message);
         }
     },
     renderConferenceList: function(conferences){
@@ -403,6 +399,7 @@ var MainWindow = Window.extend({
         this.initTray();
         this.initRootMenu();
     },
+    //初始化系统菜单
     initMenuItem: function(){
         this.appMenuItem_quit = new gui.MenuItem({
             type: 'normal',
@@ -427,7 +424,7 @@ var MainWindow = Window.extend({
     initTray: function(){
         this.appTray = new gui.Tray({
             title: 'Tray',
-            icon: this.IMAGE.TRAY_ICON,
+            icon: 'app/' + this.IMAGE.TRAY_ICON,
             tooltip: ''//在mac上就是在图标后面的文字
         });
         this.appTray.tooltip = 'mac 消息提醒';
@@ -441,6 +438,7 @@ var MainWindow = Window.extend({
         this.appRootMenu.append(this.appRootMenuItem);
         this.appWindow.menu = this.appRootMenu;
     },
+    //初始化系统菜单项
     initRootMenuItem: function(){
         this.appRootMenuItem = new gui.MenuItem({
             label: '系统',

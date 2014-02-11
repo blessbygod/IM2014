@@ -171,3 +171,6 @@ exports.treeify = function(options){
 exports.getIdSelector = function(id){
     return '[id="' + id + '"]';
 };
+exports.getDataIdSelector = function(id){
+    return '[data-id="' + id + '"]';
+};

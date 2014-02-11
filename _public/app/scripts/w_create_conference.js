@@ -14,6 +14,8 @@ var CreateConferenceWindowView = Backbone.View.extend({
     events:{
         'click .search': 'searchMemeber',
         'change .select_all': 'selectAllMembers',
+        'change .ck_member': 'selectAMember',
+        'click .selected_members_panel .member': 'rmSelectedMember',
         'click .confirm': 'createConference'
     },
     initialize: function(){
@@ -21,37 +23,91 @@ var CreateConferenceWindowView = Backbone.View.extend({
         this.window = this.options.window;
         this.treeId= 'tree_view';
         this.treeSelector = utils.getIdSelector(this.treeId);
+        this.selectedMembers = {};
         this.render();
     },
     searchMember: function(e){
     },
     //全选当前节点所有成员
     selectAllMembers: function(e){
+        var view = this;
         var el = e.currentTarget;
         var checked = el.checked;
-        var members = [];
+        var members = [], ids= [];
         $(el).parent().find('.ck_member').each(function(){
             this.checked = checked;
             var $member = $(this).parent();
             var member = {};
-            member.id = $member.data('id');
-            member.name = $member.data('name');
+            var id = $member.data('id'),
+                name =  $member.data('name');
+            member.id =  id;
+            member.name = name;
             members.push(member);
+            ids.push(id);
         });
-        this.addMemberInSelectedList(members);
+        if(checked){
+            this.addMembersToSelectedList(members);   
+        }else{
+            this.rmMembersFromSelectedList(ids);
+        }
     },
-    //已选成员列表
-    addMemberInSelectedList: function(members){
-        var htmls = [];
+    //选择一个成员
+    selectAMember: function(e){
+        var el = e.currentTarget;
+        var checked = el.checked;
+        var $el = $(el).parent();
+        var id = $el.data('id'),
+            name = $el.data('name');
+        var member = {
+            id: id,
+            name: name
+        };
+        if(checked){
+            this.addMembersToSelectedList([member]);
+        }else{
+            this.rmMembersFromSelectedList([id]);
+        }
+    },
+    //单击已选列表移除
+    rmSelectedMember: function(e){
+        var el = e.currentTarget;
+        var $el = $(el);
+        var id = $el.data('id');
+        this.rmMembersFromSelectedList([id]);
+        this.currNodeSelector = utils.getIdSelector(this.id + '_members');
+        var $members = this.$el.find(this.currNodeSelector);
+        this.renderMembersStatus($members);
+    },
+    //添加成员到已选成员列表
+    addMembersToSelectedList: function(members){
         var view = this;
         _.each(members, function(member){
-            var template = view.window.DocumentTemplate.member_tpl.join('');
-            var html = _.template(template, {
-                member: member
-            });
-            htmls.push(html);
+            var id = member.id;
+            if(view.selectedMembers.hasOwnProperty(id) === false){
+                view.selectedMembers[id] = member;
+            }
         });
-        this.$selectedMembers.append(htmls);
+        this.renderMembers(this.selectedMembers);
+    },
+    //从已选成员列表移除成员
+    rmMembersFromSelectedList: function(ids){
+        var view = this;
+        _.each(ids, function(id){
+            if(view.selectedMembers.hasOwnProperty(id)){
+                delete view.selectedMembers[id];
+            }
+        });
+        this.renderMembers(this.selectedMembers);
+    },
+    renderMembers: function(members){
+        var htmls = [];
+        var template = this.window.DocumentTemplate.member_tpl.join('');
+        var html = _.template(template, {
+            _: _,
+            members: members
+        });
+        htmls.push(html);
+        this.$selectedMembers.html(htmls);
     },
     //创建会话
     createConference: function(e){
@@ -83,6 +139,7 @@ var CreateConferenceWindowView = Backbone.View.extend({
                 }
             });
     },
+    //获取树数据
     getDeptTreeDataCallback: function(ret) {
         var deptTree = utils.treeify({
             flat: ret.data,
@@ -112,18 +169,42 @@ var CreateConferenceWindowView = Backbone.View.extend({
         //设置节点点击事件
         this.zTreeObj.setting.callback.onClick = _.bind(this.clickSelectedNode, this);
     },
+    //渲染选择列表
     getDeptMembersCallback: function(ret){
         var $members = [];
         var template = this.window.DocumentTemplate.checkbox_members_tpl.join('');
+        var members = ret.data;
+        var view = this;
+        _.each(members, function(member){
+            var id = member.id;
+            if(view.selectedMembers.hasOwnProperty(id)){
+                member.checked = true;
+            }
+        });
         var html = _.template(template, {
-            members: ret.data,
+            members: members,
             id: this.id
         });
         this.$checkboxMembers.append(html);
         $members = this.$el.find(this.currNodeSelector);
         $members.siblings().hide();
     },
+    renderMembersStatus: function($members){
+        //切换members的成员选择状态
+        $members.find('li.member').each(function(e){
+            var $member = $(this);
+            var id = $member.data('id');
+            var $checkbox = $member.find('input[type=checkbox]');
+            if(view.selectedMembers.hasOwnProperty(id)){
+                $checkbox[0].checked = true;
+            }else{
+                $checkbox[0].checked = false;
+            }
+        });
+    },
+    //获取当前节点（部门）的员工
     clickSelectedNode: function(e){
+        var view = this;
         var selectedNodes = this.zTreeObj.getSelectedNodes();
         var selectedNode = selectedNodes[0];
         this.id = selectedNode.id;
@@ -131,6 +212,7 @@ var CreateConferenceWindowView = Backbone.View.extend({
         var $members = this.$el.find(this.currNodeSelector);
         if($members.length){
             $members.show();
+            this.renderMembersStatus($members);
             $members.siblings().hide();
         }else{
             //获取成员列表
