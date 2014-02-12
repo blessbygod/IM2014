@@ -209,6 +209,15 @@ ul li{
     border-color: #aaaaaa;
 }
 
+.select_members, .selected_members{
+    overflow: auto;
+}
+.select_members{
+    height: 240px;
+}
+.selected_members{
+    height: 200px;
+}
 .tree_view{
     width: 200px;
     border: 1px solid silver;
@@ -219,10 +228,6 @@ ul li{
     border-width: 1px;
     border-color: #cccccc;
     margin-left:5px;
-}
-.selected_members_panel{
-    height: 200px;
-    width: 99%;
 }
 
 .member{

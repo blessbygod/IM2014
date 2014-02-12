@@ -27,6 +27,8 @@ process.I_USERS_ONLINE = 201;
 process.I_USERS_OFFLINE = 200;
 process.I_PRIVATE_CHAT_MESSAGE = 100;
 process.I_GROUP_CHAT_MESSAGE = 110;
+process.I_GROUP_JOIN_INVITE = 300;
+process.I_GROUP_KICK = 320;
 
 
 //分割定义

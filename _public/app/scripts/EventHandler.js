@@ -1,8 +1,10 @@
 var config = require('../config'),
 _ = require('underscore'),
 request = require('request'),
-DocumentTemplate = require('./DocumentTemplate');
+DocumentTemplate = require('./DocumentTemplate'),
+Logger = require('../logger');
 
+var logger = new Logger(window.navigator.userAgent);
 
 var g_urlRouter = config.get('url_router.json');
 var EventHandler = {
@@ -19,17 +21,17 @@ var EventHandler = {
             body: JSON.stringify(body)
         }, function(err, res){
             if(err){
-                console.log(err);
+                logger.error(err);
                 return;
             }
             try{
                 ret = JSON.parse(res.body);
             }catch(e){
-                console.error('[' + url + ']body parse error:' + res.body);
+                logger.error('[' + url + ']body parse error:' + res.body);
                 return;
             }
             if(ret.err_code !== 0){
-                console.error('err_code ' + ret.err_code + ':' + ret.msg);
+                logger.error('err_code ' + ret.err_code + ':' + ret.msg);
                 return;
             }
             if(params.callback){
@@ -151,6 +153,21 @@ var EventHandler = {
            }
         });
     },
+    //创建会话，并返回会话ID
+    changeTopicMembers: function(params){
+        var handler = EventHandler;
+        var url = process.SupportServerURL + g_urlRouter.TOPIC_CHANGE_MEMBERS;
+        var body = params.body;
+        handler.request({
+            url: url,
+            body: body,
+            callback: function(ret){
+                if(params.callback){
+                    params.callback();
+                }
+           }
+        });
+    },
     //获取渲染联系人的HTML
     getContactsTemplate: function(contacts){
          var contactArr = [];
@@ -218,27 +235,26 @@ var EventHandler = {
         messages[id].push(data);
         win.localCache.set('messages', messages);
     },
-    closeWindow: function(windows){
+    //关闭窗口  
+    closeWindows: function(windows){
         if(_.isArray(windows)){
             //倒向删除法
             for(var index=windows.length-1; index>= 0; index--){
                 var win = windows[index];
                 //倒着删除，避免出错
-                if(win.params.name !== 'main'){
-                    for(var _index=process.windows.length-1; _index>= 0; _index--){
-                        var _win = process.windows[_index];
-                        if(win.uuid === _win.uuid){
-                            //从总窗口集合windows移除
-                            process.windows.unshift();
-                        }
+                for(var _index=process.windows.length-1; _index>= 0; _index--){
+                    var _win = process.windows[_index];
+                    if(win.uuid === _win.uuid){
+                        //从总窗口集合windows移除
+                        process.windows.splice(_index);
                     }
+                }
+                if(win.params.name !== 'main'){
                     if(win.params.name === 'conference'){
                         delete process.conferenceWindow[win.view.id];
                     }else{
                         delete process[win.params.name + 'Window'];
                     }
-                }else{
-                     process.windows.unshift();
                 }
                win.appWindow.close(true);
             }

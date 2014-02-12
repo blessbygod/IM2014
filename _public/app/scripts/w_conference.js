@@ -11,31 +11,53 @@ var Backbone = require('backbone')(this);
 var ConferenceWindowView = Backbone.View.extend({
     el: 'section',
     events:{
-        'dblclick .contact_nickname': function(event){
-        },
-        //发送消息
-        'click .send_message': function(event){
-            var view = this;
-            var content = this.getContent(),
-                user_id = process.user_id,
-                msg_type = this.type,
-                token = process.token,
-                topic_name = null,
-                timestamp = new Date().getTime();
+        'click .send_message': 'sendMessages',  //发送消息
+        'click .modify_members': 'openModifyConferenceWindow'   //修改会话成员
+    },
+    //触发发送消息按钮
+    sendMessages: function(e){
+        var view = this;
+        var content = this.getContent(),
+        user_id = process.user_id,
+        msg_type = this.type,
+        token = process.token,
+        topic_name = null,
+        timestamp = new Date().getTime();
 
-                //群聊天的id即为topic_id
-                topic_id = this.topic_id;
-                view.sendMessage({
-                    topic_id: topic_id,
-                    message: content,
-                    msg_type: msg_type,
-                    user_id: user_id,
-                    timestamp: timestamp
-                });
-            //即时发送让用户直接看到自己发送的信息
-            this.appendToConversation(user_id, content, timestamp);
-            this.setContent('');
+        //群聊天的id即为topic_id
+        topic_id = this.topic_id;
+        view.sendMessage({
+            topic_id: topic_id,
+            message: content,
+            msg_type: msg_type,
+            user_id: user_id,
+            timestamp: timestamp
+        });
+        //即时发送让用户直接看到自己发送的信息
+        this.appendToConversation(user_id, content, timestamp);
+        this.setContent('');
+    },
+    openModifyConferenceWindow: function(e){
+        if(process.createConferenceWindow){
+            process.createConferenceWindow.appWindow.show();
+            process.createConferenceWindow.appWindow.focus();
+            return;
         }
+        //目前规定一次只能打开一个修改会话成员的窗口，减少复杂性
+        //定义创建会话窗口的参数
+        process.createConferenceWindowOption = {
+            type: 'modify',
+            topic_name: this.name,
+            topic_id: this.topic_id
+        };
+        gui.Window.open('w_create_conference.html', {
+            width: 640,
+            height: 640,
+            position: 'left',
+            frame: false,
+            toolbar: false
+        });
+        
     },
     //会话聊天记录的实时显示
     appendToConversation: function(sender, content, timestamp){
@@ -110,12 +132,9 @@ var ConferenceWindowView = Backbone.View.extend({
         this.type = this.contact.type;
         if(this.type === process.I_PRIVATE_CHAT_MESSAGE){
             this.name = this.contact.nick_name;
-            this.title = '与' + this.name + '聊天';
         }else{
             this.name = this.contact.topic_name;
-            this.title = '群(' + this.name + ')';
         }
-        document.title = this.title;
         this.id = this.contact.id;
         this.topic_id = this.contact.topic_id;
         this.render();
@@ -148,24 +167,26 @@ var ConferenceWindowView = Backbone.View.extend({
     //初始化会话成员
     initTopicMembers: function(){
         var view = this;
-        console.log('topic_id:' + this.topic_id);
-        view.window.EventHandler.getTopicMembers({
+        this.window.EventHandler.getTopicMembers({
             body: {
                 topic_id: this.topic_id
             },
             callback: function(data){
-                var members = data.members;
-                view.window.EventHandler.getDetails(data.members, function(contacts){    
-                    var template = view.window.EventHandler.getContactsTemplate(contacts);
-                    view.$members.append(template);
+                var ids = data.members;
+                var contacts = {};
+                _.each(ids, function(id){
+                    var contact = process.contacts[id];
+                    contacts[id] = contact;
+                    //处理缓存不存在的情况，需要更新整体的process.contacts,后续
                 });
+                template = view.window.EventHandler.getContactsTemplate(contacts);
+                view.$members.html(template);
             }
         });
     },
     render: function(){
         var view = this;
         var template = view.window.DocumentTemplate.conference_tpl.join('');
-        console.log(this);
         var _template = _.template(template, this);
         view.$el.html(_template);
         view.initJQueryElement();

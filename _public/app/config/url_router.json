@@ -10,6 +10,7 @@
     "TOPIC_UPDATE_NAME": "/topic/update_name/",
     "TOPIC_ADD_MEMBERS": "/topic/add_members/",
     "TOPIC_RM_MEMBERS": "/topic/rm_members/",
+    "TOPIC_CHANGE_MEMBERS": "/topic/change_members/",
     "TOPIC_GET_TOPICS": "/topic/get_topics/",
     "TOPIC_GET_MEMBERS": "/topic/get_members/",
     "UPLOAD": "/upload/",

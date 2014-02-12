@@ -49,9 +49,9 @@ var Window = Base.extend({
             if(win.params.name === 'main'){
                 //清除缓存
                 win.localCache.remove('messages');
-                win.EventHandler.closeWindow(process.windows);
+                win.EventHandler.closeWindows(process.windows);
             }else{
-                win.EventHandler.closeWindow([win]);
+                win.EventHandler.closeWindows([win]);
             }
         });
     },

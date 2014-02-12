@@ -70,6 +70,13 @@ process.sockjs.onmessage = function(e){
             //1.2.2 把所有消息都保存到本地，客户端退出时清除
             process.mainWindow.EventHandler.saveMessages(process.mainWindow, data, id);
         break;
+        case process.I_GROUP_JOIN_INVITE:
+            process.mainWindow.view.switchList('conference');
+            break;
+        case process.I_GROUP_KICK:
+            alert('您已经被提出了群(' + data.topic_name + ')');
+            process.mainWindow.view.switchList('conference');
+            break;
         //服务器返回token已失效的信息
         case process.I_VALIDATE_TOKEN_ERR:
             break;
@@ -103,9 +110,16 @@ var MainWindowView = Backbone.View.extend({
             process.createConferenceWindow.appWindow.focus();
             return;
         }
+        //目前规定一次只能打开一个修改会话成员的窗口，减少复杂性
+        //定义创建会话窗口的参数
+        process.createConferenceWindowOption = {
+            type: 'create',
+            topic_name: '',
+            topic_members: []
+        };
         gui.Window.open('w_create_conference.html', {
             width: 640,
-            height: 440,
+            height: 540,
             position: 'left',
             frame: false,
             toolbar: false
