@@ -57,7 +57,6 @@ var ConferenceWindowView = Backbone.View.extend({
             frame: false,
             toolbar: false
         });
-        
     },
     //会话聊天记录的实时显示
     appendToConversation: function(sender, content, timestamp){
@@ -153,9 +152,6 @@ var ConferenceWindowView = Backbone.View.extend({
         var messages = this.window.localCache.get('messages');
         if(!messages){
             return;
-        }else{
-            console.log(this.id);
-            console.log(messages);
         }
         var curr_messages = messages[this.id];
         if(_.isObject(messages) && curr_messages){
