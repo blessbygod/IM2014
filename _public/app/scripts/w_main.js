@@ -75,14 +75,18 @@ process.sockjs.onmessage = function(e){
         break;
         //被邀请到群
         case process.I_GROUP_JOIN_INVITE:
-            alert('您已经被群(' + data.topic_name + ')邀请!');
+            if(data.msg_type === process.I_GROUP_CHAT_MESSAGE){
+                alert('您已经被群(' + data.topic_name + ')邀请!');
+            }
             process.mainWindow.view.switchList('conference');
-            break;
+        break;
         //被群踢出
         case process.I_GROUP_KICK:
-            alert('您已经被提出了群(' + data.topic_name + ')');
+            if(data.msg_type === process.I_GROUP_CHAT_MESSAGE){
+                alert('您已经被提出了群(' + data.topic_name + ')');
+            }
             process.mainWindow.view.switchList('conference');
-            break;
+        break;
         //服务器返回token已失效的信息
         case process.I_VALIDATE_TOKEN_ERR:
             break;
