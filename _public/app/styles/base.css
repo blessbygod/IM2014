@@ -216,8 +216,16 @@ ul li{
     height: 240px;
 }
 .selected_members{
-    height: 200px;
+    margin-top: 20px;
+    height: 140px;
 }
+
+.selected_members ul li{
+    float: left;
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
 .tree_view{
     width: 200px;
     border: 1px solid silver;
