@@ -118,6 +118,9 @@ var MainWindowView = Backbone.View.extend({
         }
         //目前规定一次只能打开一个修改会话成员的窗口，减少复杂性
         //定义创建会话窗口的参数
+        _.each(process.contacts, function(contact){
+            contact.checked = false;
+        });
         process.createConferenceWindowOption = {
             type: 'create',
             topic_name: '',

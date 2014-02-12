@@ -147,9 +147,6 @@ var CreateConferenceWindowView = Backbone.View.extend({
                         rm_members: rm_members
                     },
                     callback: function(){
-                        _.each(process.contacts, function(contact){
-                            contact.checked = false;
-                        });
                         logger.info('modify conference members ok!');
                         //切换到当前会话窗口并刷新成员列表
                         process.mainWindow.view.switchList('conference');
@@ -166,9 +163,6 @@ var CreateConferenceWindowView = Backbone.View.extend({
                         members: memberIds
                     },
                     callback: function(){
-                        _.each(process.contacts, function(contact){
-                            contact.checked = false;
-                        });
                         logger.info('create conference members ok!');
                         //在主窗口切换到会话列表
                         process.mainWindow.view.switchList('conference');
