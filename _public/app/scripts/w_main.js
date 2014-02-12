@@ -48,14 +48,17 @@ process.sockjs.onmessage = function(e){
         contact = process.contacts[id];
     }
     switch(data.msg_type){
+        //用户上线
         case process.I_USERS_ONLINE:
             process.mainWindow.view.changeUserStatus($userList, data, "online");
             process.mainWindow.view.changeUserStatus($conferenceList, data, "online");
         break;
+        //用户离线
         case process.I_USERS_OFFLINE:
             process.mainWindow.view.changeUserStatus($userList, data);
             process.mainWindow.view.changeUserStatus($conferenceList, data);
         break;
+        //聊天消息
         case process.I_PRIVATE_CHAT_MESSAGE:
         case process.I_GROUP_CHAT_MESSAGE:
             //1.2.1 通知会话窗口显示消息
@@ -70,9 +73,12 @@ process.sockjs.onmessage = function(e){
             //1.2.2 把所有消息都保存到本地，客户端退出时清除
             process.mainWindow.EventHandler.saveMessages(process.mainWindow, data, id);
         break;
+        //被邀请到群
         case process.I_GROUP_JOIN_INVITE:
+            alert('您已经被群(' + data.topic_name + ')邀请!');
             process.mainWindow.view.switchList('conference');
             break;
+        //被群踢出
         case process.I_GROUP_KICK:
             alert('您已经被提出了群(' + data.topic_name + ')');
             process.mainWindow.view.switchList('conference');
