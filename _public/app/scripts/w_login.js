@@ -86,4 +86,7 @@ var LoginWindow = Window.extend({
     }
  };
 
+ process.windows = [];
+ process.windows.push(process.loginWindow);
+
  //aspect before, after 只能在事件执行前监听；
