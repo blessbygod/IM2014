@@ -60,13 +60,13 @@ ul li{
 
 .editor{
     overflow-y: auto;
-    width: 70%;
-    height: 80px;
+    width: 96%;
+    height: 100px;
 }
 
 .conversation{
     width:100%;
-    height: 260px;
+    height: 200px;
     overflow-y: auto;
     padding-bottom: 32px;
 }

@@ -117,7 +117,7 @@ var DocumentTemplate = {
                 '<% } %>',
             '</div>',
         '</div>',
-        '<div class="">',
+        '<div>',
             '<div class="chat_panel pull-left">',
                 '<div class="conversation">',
                 '</div>',
