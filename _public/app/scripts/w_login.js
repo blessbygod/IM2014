@@ -21,7 +21,7 @@ var LoginWindowView = Backbone.View.extend({
             this.window.EventHandler.loginAction.call(this, event, function(){
                 view.window.EventHandler.setUserStatus(function(){
                     gui.Window.open('w_main.html', {
-                        width: 240,
+                        width: 280,
                         height: 600,
                         position: 'left',
                         toolbar: false,

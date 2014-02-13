@@ -161,14 +161,14 @@ var MainWindowView = Backbone.View.extend({
             if(view.unreadMessages.hasOwnProperty(id)){
                 delete view.unreadMessages[id];
                 var selector = 'li' + utils.getDataIdSelector(id);
-                $(selector).find('.unread_messages_count').text('');
+                $(selector).find('.unread_messages_count').text('').removeClass('msg_tips');
             }
             if(topic_id){
                 this.contact.topic_id = topic_id;
             }
             process.currentConversationContact = this.contact;
             gui.Window.open('w_conference.html', {
-                width: 540,
+                width: 640,
                 height: 440,
                 position: 'left',
                 frame: false,
@@ -270,7 +270,7 @@ var MainWindowView = Backbone.View.extend({
         }else{
             this.unreadMessages[id].count += 1;
         }
-        $userId.find('.unread_messages_count').text(this.unreadMessages[id].count);
+        $userId.find('.unread_messages_count').text(this.unreadMessages[id].count).addClass('msg_tips');
     },
    /* userFlashOnMessage: function(contact){
         if(!contact){
@@ -406,7 +406,7 @@ var MainWindow = Window.extend({
         //手动删除全局引用
         delete process.loginWindow;
         this.appWindow.focus();
-        this.appWindow.moveTo(1024, 80);
+        this.appWindow.moveTo(60, 80);
         this.initOSInfo();
     },
     initOSInfo: function(){

@@ -43,6 +43,16 @@ ul li{
 }
 .unread_messages_count{
     color: red;
+    font-family: bold;
+    font-size: 14px;
+    margin-right:20px;
+    text-align: center;
+}
+.msg_tips{
+    border-radius: 10px;
+    background-color: #ccc;
+    width: 24px;
+    height: 24px;
 }
 /* conferenceWindow */
 .chat_panel{

@@ -39,6 +39,7 @@ var Logger = function(agent){
 };
 
 //先区分颜色信息， 级别内容信息未定
+//  机器|系统(版本)|浏览器(版本)|IP|信息类型| message
 _.each(['info', 'warn', 'error'], function(method){
     Logger.prototype[method] = function(msg){
         //根据级别不同打印不同的日志
