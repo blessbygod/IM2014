@@ -79,7 +79,7 @@ process.sockjs.onmessage = function(e){
         break;
         //被群踢出
         case process.I_GROUP_KICK:
-            alert('您已经被提出了群(' + data.msg_content.topic_name + ')');
+            alert('您已经被踢出了群(' + data.msg_content.topic_name + ')');
             process.mainWindow.view.switchList('conference');
         break;
         //服务器返回token已失效的信息
@@ -404,7 +404,6 @@ var MainWindow = Window.extend({
         MainWindow.superclass.initialize.call(this, params);
         process.loginWindow.appWindow.close();
         //手动删除全局引用
-        delete process.loginWindow;
         this.appWindow.focus();
         this.appWindow.moveTo(60, 80);
         this.initOSInfo();
@@ -423,11 +422,12 @@ var MainWindow = Window.extend({
     },
     //初始化系统菜单
     initMenuItem: function(){
+        var win = this;
         this.appMenuItem_quit = new gui.MenuItem({
             type: 'normal',
             label: '退出----IM',
             click: function(){
-                win.EventHandler.closeWindow(process.windows);
+                win.EventHandler.closeWindows(process.windows);
             }
         });
         this.appMenuItem_front = new gui.MenuItem({
@@ -521,4 +521,3 @@ process.mainWindow = new MainWindow({
 });
 process.windows.push(process.mainWindow);
 //aspect before, after 只能在事件执行前监听；
-//通知其他窗口的事件订阅

@@ -150,7 +150,7 @@ var CreateConferenceWindowView = Backbone.View.extend({
                         logger.info('modify conference members ok!');
                         //切换到当前会话窗口并刷新成员列表
                         process.mainWindow.view.switchList('conference');
-                        process.conferenceWindow[view.topic_id].view.initialize();
+                        process.conferenceWindow[view.topic_id].view.initialize('members');
                         process.createConferenceWindow.appWindow.close();
                     }
                 });

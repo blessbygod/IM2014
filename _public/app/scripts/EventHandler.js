@@ -246,7 +246,7 @@ var EventHandler = {
                     var _win = process.windows[_index];
                     if(win.uuid === _win.uuid){
                         //从总窗口集合windows移除
-                        process.windows.splice(_index);
+                        process.windows.splice(_index, 1);
                     }
                 }
                 if(win.params.name !== 'main'){
