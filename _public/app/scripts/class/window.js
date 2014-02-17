@@ -14,6 +14,7 @@ var Window = Base.extend({
         logger.info('window initializing....');
         try{
             this.params = params;
+            this.initConfig();
             //初始化全局变量
             this.initGlobalVar();
             this.initCache();
@@ -29,6 +30,14 @@ var Window = Base.extend({
             Window.superclass.initialize.call(this, params);
         }catch(e){
             logger.error('当前窗口初始化碰到问题:' + e.message);
+        }
+    },
+    initConfig: function(){
+        var cssFileName = 'base';
+        switch(process.skinType){
+            case 'navy':
+                cssFileName += '_navy';
+                break;
         }
     },
     initCache: function(){

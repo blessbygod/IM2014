@@ -60,7 +60,7 @@ var ConferenceWindowView = Backbone.View.extend({
     },
     //会话聊天记录的实时显示
     appendToConversation: function(sender, content, timestamp){
-        var message = this.getSendMessage(sender, content, timestamp);
+        var message = this.getSendMessage(sender, _.escape(content), timestamp);
         var html = this.$conversation.html();
         var updateHtml = html + '<br/>' + message;
         this.$conversation.html(updateHtml);

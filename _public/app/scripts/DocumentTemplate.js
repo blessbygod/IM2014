@@ -3,7 +3,7 @@ var DocumentTemplate = {
     header_tpl: [
         '<div class="pull-left win_action">',
             '<button class="btn window_minimize"> -- </button>',
-            '<button class="btn window_maximize"> 口 </button>',
+            //'<button class="btn window_maximize"> 口 </button>',
             '<button class="btn window_close"> X </button>',
         '</div>',
         '<div class="btn show_dev_tools pull-left">nw版本:',
