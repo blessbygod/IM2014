@@ -1,6 +1,4 @@
 var Window = require('./scripts/class/window');
-$ = jQuery = require('jquery')(this),
-_ = require('underscore'),
 uuid = require('uuid'),
 gui = require('nw.gui');
 

@@ -18,12 +18,10 @@
     "repository": {},
     "dependencies": {
       "underscore": "*",
-      "backbone": "*",
-      "jquery": "*",
       "uuid": "*",
       "request": "*",
       "detector": "*",
-      "log4js": "*"
+      "crypto": "*"
     }
 }
 

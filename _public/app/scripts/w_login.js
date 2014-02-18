@@ -1,10 +1,7 @@
 
 //当前窗口依赖项
-var Window = require('./scripts/class/window');
-$ = require('jquery')(window),
-_ = require('underscore'),
-gui = require('nw.gui'),
-Backbone = require('backbone')(window);
+var Window = require('./scripts/class/window'),
+gui = require('nw.gui');
 
 //1.2 确认可用服务器
 

@@ -1,10 +1,7 @@
 //当前窗口依赖项
 var Window = require('./scripts/class/window');
-$ = require('jquery')(this),
-_ = require('underscore'),
 utils = require('./utils'),
 gui = require('nw.gui'),
-Backbone = require('backbone')(this),
 require('./scripts/plugin/ztree')(this),
 Logger = require('./logger');
 

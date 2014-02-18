@@ -1,11 +1,8 @@
 var Window = require('./scripts/class/window');
-$ = require('jquery')(this),
-_ = require('underscore'),
 uuid = require('uuid'),
 gui = require('nw.gui'),
 detector = require('detector'),
 utils = require('./utils'),
-Backbone = require('backbone')(this),
 Logger = require('./logger');
 
 var logger = new Logger(this.navigator.userAgent);
