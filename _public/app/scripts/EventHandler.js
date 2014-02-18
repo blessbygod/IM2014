@@ -235,7 +235,8 @@ var EventHandler = {
         messages[id].push(data);
         win.localCache.set('messages', messages);
     },
-    //关闭窗口  
+    //关闭窗口
+    //nw.gui.App.closeAllWindows 窗口可以实现关闭所有窗口,  如果这个方法在windows下流畅的话，closeWIndows这个方法就废弃了
     closeWindows: function(windows){
         if(_.isArray(windows)){
             //倒向删除法

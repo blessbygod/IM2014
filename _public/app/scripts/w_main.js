@@ -79,7 +79,7 @@ process.sockjs.onmessage = function(e){
         break;
         //被群踢出
         case process.I_GROUP_KICK:
-            alert('您已经被踢出了群(' + data.msg_content.topic_name + ')');
+            alert('您已经主动或被动退出了该会话(' + data.msg_content.topic_name + ')');
             process.mainWindow.view.switchList('conference');
         break;
         //服务器返回token已失效的信息
@@ -94,13 +94,43 @@ process.sockjs.onclose = function(e){
 //服务器connecotr错误事件
 process.sockjs.onerror = function(){
 };
+
+
+//会话右键菜单
+var contextmenu = new gui.Menu();
+var menuItem = new gui.MenuItem({
+    label: '退出该会话'
+});
+contextmenu.append(menuItem);
+
 //2.0 定义当前窗口主体的View
 var MainWindowView = Backbone.View.extend({
     el: 'section',
     events:{
         'dblclick .user, .conference': 'openConferenceWindow',
         'click .create_conference': 'openCreateConferenceWindow',
-        'click .toggle_list': 'toggleList'
+        'click .toggle_list': 'toggleList',
+        'contextmenu .conference': function(e){
+            var $el = $(e.currentTarget);
+            var view = this;
+            var type = $el.data('type');
+            var topic_name = $el.data('name');
+            var topic_id = $el.attr('id');
+            menuItem.once('click', function(e){
+                view.window.EventHandler.changeTopicMembers({
+                    body:{
+                        topic_name: topic_name,
+                        topic_id: topic_id,
+                        rm_members: [process.user_id]
+                    },
+                    callback: function(){
+                        process.mainWindow.view.switchList('conference');
+                    }
+                });
+            });
+            contextmenu.popup(e.clientX, e.clientY);
+            return false;
+        }
     },
     initialize: function(){
         //当前窗口的实例

@@ -56,9 +56,10 @@ var Window = Base.extend({
         //只能绑定一次，不要多次绑定该事件
         this.appWindow.once('close', function(e){
             if(win.params.name === 'main'){
-                //清除缓存
+                //清除缓存, 这里得区分判断， 如果已经读取过的话则清楚，否则保留
                 win.localCache.remove('messages');
                 win.EventHandler.closeWindows(process.windows);
+                //this.params.gui.App.closeAllWindows();
             }else{
                 win.EventHandler.closeWindows([win]);
             }

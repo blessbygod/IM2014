@@ -90,7 +90,7 @@ var DocumentTemplate = {
     main_conferences_tpl: [
         '<ul class="list">',
             '<% _.each(conferences, function(conference){ %>',
-                '<li id="<%= conference.topic_id %>" class="conference clearfix" data-type="<%= conference.topic_type %>" data-id="<%= conference.id %>">',
+                '<li id="<%= conference.topic_id %>" class="conference clearfix" data-type="<%= conference.topic_type %>" data-id="<%= conference.id %>" data-name="<%= conference.topic_name %>">',
                     '<span class="portrait">',
                         '<img src="<%= conference.portrait %>" />',
                     '</span>',
