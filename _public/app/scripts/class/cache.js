@@ -17,8 +17,11 @@ var Cache = Base.extend({
         Cache.superclass.initialize.call(this);
         this.initCache();
     },
+    //discard method, init login will clear storage-data
     initCache: function(){
-        this.cache = {};
+        this.clear();
+        //topic_id 不再需要存储，离线消息，加入未读，从聊天记录里面获取
+       /* this.cache = {};
         try{
         for(var i=0; i<this.storage.length; i++){
             var key = this.storage.key(i);
@@ -46,6 +49,7 @@ var Cache = Base.extend({
         }catch(e){
             console.log(e.message);
         }
+        */
     },
     get: function(key){
         return this.cache[key];

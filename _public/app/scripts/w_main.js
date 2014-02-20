@@ -198,8 +198,8 @@ var MainWindowView = Backbone.View.extend({
                 width: 640,
                 height: 440,
                 position: 'left',
-                frame: false,
-                toolbar: false
+                frame: true,
+                toolbar: true 
             });
         };
         if(!topic_id){
@@ -405,13 +405,14 @@ var MainWindowView = Backbone.View.extend({
                 conference.portrait = 'images/profile/group.png';
             }
         });
-        var template = view.window.DocumentTemplate.main_conferences_tpl.join('');
+        var template = this.window.DocumentTemplate.main_conferences_tpl.join('');
         //渲染个人信息和推荐联系人信息
         var _template = _.template(template, {
             conferences: conferences,
             _: _
         });
-        view.$conferenceList.html(_template);
+        console.log(_template);
+        this.$conferenceList.html(_template);
     },
     render: function(){
         var template = this.window.DocumentTemplate.main_tpl.join('');

@@ -1,16 +1,19 @@
 var Window = require('./scripts/class/window');
 uuid = require('uuid'),
+fs = require('fs'),
+_crypto = require('crypto'),
 gui = require('nw.gui');
 
-//载入编辑器
-var Backbone = require('backbone')(this);
+var Logger = require('./logger');
+var logger = new Logger(this.navigator.userAgent);
 
 //1.0 定义会话窗口主体的View
 var ConferenceWindowView = Backbone.View.extend({
     el: 'section',
     events:{
         'click .send_message': 'sendMessages',  //发送消息
-        'click .modify_members': 'openModifyConferenceWindow'   //修改会话成员
+        'click .modify_members': 'openModifyConferenceWindow',   //修改会话成员
+        'change .transport_file': 'transportFile'
     },
     //触发发送消息按钮
     sendMessages: function(e){
@@ -55,6 +58,30 @@ var ConferenceWindowView = Backbone.View.extend({
             frame: false,
             toolbar: false
         });
+    },
+    transportFile: function(e){
+        console.log('drop on input or change input');
+        this.transportFiles(e.target.files);
+        e.target.value = '';
+    },
+    transportFiles: function(files){
+        //console.log(this.transportFiles.caller.toString());
+        //计算md5
+        _.each(files, function(file){
+            var s = fs.ReadStream(file.path);
+            var md5 = _crypto.createHash('md5');
+            s.on('data', function(data){
+                md5.update(data);
+            });
+            s.on('end', function(){
+                var d = md5.digest('hex');
+                logger.info(d);
+            });
+        });
+    },
+    dropOnBody: function(e){
+        console.log('drop on...');
+        this.transportFiles(e.dataTransfer.files);
     },
     //会话聊天记录的实时显示
     appendToConversation: function(sender, content, timestamp){
@@ -125,6 +152,8 @@ var ConferenceWindowView = Backbone.View.extend({
     initialize: function(){
         //当前窗口的实例
         this.window = this.options.window;
+        this.fileUpoladQueue = {}; //上传文件队列
+        this.fileDownloadQueue = {}; // 下载文件队列
         this.contact = process.currentConversationContact;
         this.type = this.contact.type;
         if(this.type === process.I_PRIVATE_CHAT_MESSAGE){
@@ -141,6 +170,7 @@ var ConferenceWindowView = Backbone.View.extend({
         this.$conversation = this.$el.find('.conversation');
         this.$send = this.$el.find('.send_message');
         this.$members = this.$el.find('.conference_members');
+        this.$file = this.$el.find('.transport_file');
     },
     initWYSIWYG: function(){
         //暂时使用纯文本的
@@ -238,5 +268,28 @@ document.body.onkeyup = function(e){
     }
  };
 
- process.windows.push(process.conferenceWindow[id]);
+process.windows.push(process.conferenceWindow[id]);
+
+var dropOnBody = function(e){
+    process.conferenceWindow[id].view.dropOnBody(e);
+};
+var preventDefault = function(e){
+    e.preventDefault();
+    e.stopPropagation();
+};
+
+document.body.addEventListener('dragover', function(e){
+    preventDefault(e);
+}, false);
+document.body.addEventListener('drop', function(e){
+    dropOnBody(e);
+    preventDefault(e);
+}, false);
+
+//这里是坑，引用事件则失效，事件可以进入，但是禁止不了默认行为。
+//document.body.addEventListener('drag', preventDefault, false);
+//document.body.addEventListener('dragstart', preventDefault, false);
+//document.body.addEventListener('dragend', preventDefault, false);
+//document.body.addEventListener('dragenter', preventDefault, false);
+//document.body.addEventListener('dragover', preventDefault, false);
 

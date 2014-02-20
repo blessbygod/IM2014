@@ -44,7 +44,8 @@ _.each(['info', 'warn', 'error'], function(method){
     Logger.prototype[method] = function(msg){
         //根据级别不同打印不同的日志
         var messages = this.messages.slice(0);
-        messages.push('(' + method + ')');
+        var callerStr = '\r\n(caller)' + Logger.prototype[method].caller.toString()+ '\r\n';
+        messages.push(callerStr);
         messages.push(msg);
         var _messages = messages.join('|');
         switch(method){

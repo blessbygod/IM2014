@@ -11,8 +11,7 @@ Logger = require('../../logger');
 var logger =  new Logger(window.navigator.userAgent);
 var Window = Base.extend({
     initialize: function(params){
-        logger.info('window initializing....');
-       // try{
+        try{
             this.params = params;
             this.initConfig();
             //初始化全局变量
@@ -28,9 +27,9 @@ var Window = Base.extend({
             this.initBackBoneView();
             //更新localCache的storage对象
             Window.superclass.initialize.call(this, params);
-        //}catch(e){
-        //    logger.error('当前窗口初始化碰到问题:' + e.message);
-        //}
+        }catch(e){
+            logger.error('当前窗口初始化碰到问题:' + e.message);
+        }
     },
     initConfig: function(){
         var cssFileName = 'base';

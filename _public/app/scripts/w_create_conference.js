@@ -14,7 +14,7 @@ var CreateConferenceWindowView = Backbone.View.extend({
     events:{
         'click .search': 'searchMemeber',
         'change .select_all': 'selectAllMembers',
-        'change .ck_member': 'selectAMember',
+        'click .ck_member': 'selectAMember',
         'click .selected_members .user': 'rmSelectedMember',
         'click .confirm': 'createConference'
     },
