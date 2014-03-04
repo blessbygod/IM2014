@@ -40,7 +40,7 @@ var Window = Base.extend({
         }
     },
     initCache: function(){
-        this.localCache = new Cache(this.params.localStorage);
+        this.localCache = new Cache(this.params.localStorage, this.params.name);
         //不能跨窗口传递存储, 需要在初始化每个窗口的时候做更新
     },
     syncCache: function(storage){

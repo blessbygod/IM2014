@@ -13,7 +13,8 @@
     "TOPIC_CHANGE_MEMBERS": "/topic/change_members/",
     "TOPIC_GET_TOPICS": "/topic/get_topics/",
     "TOPIC_GET_MEMBERS": "/topic/get_members/",
-    "UPLOAD": "/upload/",
+    "FILE_TRANS_UPLOAD": "/file_trans/upload/",
+    "FILE_TRANS_DOWNLOAD": "/file_trans/download/",
     "AUDIO": "/audio/",
     "VIDEO": "/video/"
 }

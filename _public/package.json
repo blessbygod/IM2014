@@ -5,8 +5,8 @@
     "main": "app/w_login.html",
     "window":{
         "icon": "app/images/mail.png",
-        "toolbar": true,
-        "frame": true,
+        "toolbar": false,
+        "frame": false,
         "position": "center",
         "resizable": false,
         "width": 400,

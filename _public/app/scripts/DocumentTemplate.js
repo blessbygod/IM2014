@@ -37,6 +37,7 @@ var DocumentTemplate = {
     ],
     main_tpl: [
         '<div class="main">',
+            '<input id="file_saveas" type="file" nwsaveas  style="display: none;"/>',
             '<div class="user_detail">',
             '</div>',
             '<div class="list_panel">',
@@ -180,6 +181,7 @@ var DocumentTemplate = {
             '<button class="pull-right input-mini confirm">确定</button>',
         '</div>'
     ],
+    //创建会话窗口的待选择成员列表
     checkbox_members_tpl: [
         '<div id="<%= id %>_members" class="members">',
             '<input type="checkbox" class="select_all" />',
@@ -196,6 +198,43 @@ var DocumentTemplate = {
                 '<% }); %>',
             '</ul>',
         '</div>'
+    ],
+    //文件上传进度条窗口
+    file_transport_tpl:[
+        '<div class="file_transport_manager">',
+            '<ul class="file_list">',
+            '</ul>',
+        '</div>'
+    ],
+    process_loading_tpl: [
+        '<li class="file_transport_info" id="<%= fingerprint %>" data-userid="<%= user_id %>">',
+            '<span class="portrait">',
+                '<img src="<%= portrait %>" />',
+                '<img src="images/fileicons/<%= doctype %>.gif" />',
+            '</span>',
+            '<span class="info" >',
+                '<div>',
+                    '<span class="file_name"><%= file_name %></span>',
+                    '<span class="file_size">(<%= file_size_show %>)</span>',
+                '</div>',
+                '<div class="transport_memo">',
+                    '<%= memo %>',
+                '</div>',
+                '<div class="process_bar">',
+                    '<div class="process_loading"></div>',
+                '</div>',
+                '<div class="transer_speed">',
+                    '<span class="speed"></span>',
+                    '<span class="rate">/s</span>',
+                '</div>',
+                '<div class="left_time">',
+                '</div>',
+            '</span>',
+            '<span class="action">',
+                '<img class="cancel" data-type="<%= type %>" src="images/refuse_down.png" />',
+                '<img class="confirm" data-type="<%= type %>" src="images/<%= confirm_png %>" />',
+            '</span>',
+        '</li>'
     ]
 };
 

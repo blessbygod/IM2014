@@ -1,7 +1,13 @@
 /*
  *  global
  * */
-
+body{
+    margin: auto;
+    border: 2px solid black;
+    height: 100%;
+    width: 99%;
+    display: inline-block !important;
+}
 header{
     padding: 1px;
 }
@@ -258,4 +264,32 @@ input[type="file"]{
 
 .member{
     cursor: pointer;
+}
+
+
+/* 文件上传管理窗口 */
+.file_transport_info{
+    clear: both;
+}
+.file_transport_info span{
+    float: left;
+    margin-left: 20px;
+}
+.file_transport_info span img{
+    height: 24px;
+    width: 24px;
+}
+.file_transport_info span.action img{
+    float: right;
+    margin-right: 20px;
+    cursor: pointer;
+}
+.process_bar{
+    height: 10px;
+    border: 1px solid blue;
+}
+.process_loading{
+    height: 100%;
+    width: 0%;
+    background-color: blue;
 }

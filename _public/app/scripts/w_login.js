@@ -21,8 +21,8 @@ var LoginWindowView = Backbone.View.extend({
                         width: 240,
                         height: 600,
                         position: 'left',
-                        toolbar: false,
-                        frame: false
+                        toolbar: true,
+                        frame: true 
                     });
                 });
             });

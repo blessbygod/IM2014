@@ -2,12 +2,27 @@
     "product": {
     },
     "test": {
-        
+        "support": {
+            "ip": "10.11.50.225",
+            "port": 3510
+        },
+        "file_transport":{
+            "ip": "10.11.50.225",
+            "port": 3530
+        },
+        "message": {
+            "ip": "10.11.50.225",
+            "port": 3500
+        }
     },
     "develop": {
         "support": {
             "ip": "10.1.104.89",
             "port": 3510
+        },
+        "file_transport":{
+            "ip": "10.1.104.89",
+            "port": 3530
         },
         "message": {
             "ip": "10.1.104.89",

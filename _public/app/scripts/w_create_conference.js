@@ -44,7 +44,7 @@ var CreateConferenceWindowView = Backbone.View.extend({
             ids.push(id);
         });
         if(checked){
-            this.addMembersToSelectedList(members);   
+            this.addMembersToSelectedList(members);
         }else{
             this.rmMembersFromSelectedList(ids);
         }

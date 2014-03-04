@@ -9,19 +9,21 @@ var Base = require('../base/base');
  * */
 
 var Cache = Base.extend({
-    initialize: function(storage){
+    initialize: function(storage, winname){
         this.storage = storage;
         if(!storage){
             throw new Error('storage is null!');
         }
         Cache.superclass.initialize.call(this);
         this.initCache();
+        if(winname === 'main'){
+            this.clear();
+        }
     },
     //discard method, init login will clear storage-data
     initCache: function(){
-        this.clear();
         //topic_id 不再需要存储，离线消息，加入未读，从聊天记录里面获取
-       /* this.cache = {};
+        this.cache = {};
         try{
         for(var i=0; i<this.storage.length; i++){
             var key = this.storage.key(i);
@@ -49,7 +51,6 @@ var Cache = Base.extend({
         }catch(e){
             console.log(e.message);
         }
-        */
     },
     get: function(key){
         return this.cache[key];

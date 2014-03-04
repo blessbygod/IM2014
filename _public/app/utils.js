@@ -174,3 +174,67 @@ exports.getIdSelector = function(id){
 exports.getDataIdSelector = function(id){
     return '[data-id="' + id + '"]';
 };
+
+exports.isKnownFileType = function(fileName) {
+    var types = ['eml', 'doc', 'avi', 'pdf', 'ppt', 'rar', 'swf', 'wav', 'wma', 'xls', 'xml', 'zip', 'fla', 'mp3', 'docx', 'xlsx', 'pptx', 'gif', 'jpg', 'png', 'ico','html', 'bmp', 'txt', 'htm'];
+        var matched = 'none',
+        len = types.length;
+        while (len--) {
+            var t = types[len];
+            if (exports.endWith(fileName.toLowerCase(), t)) {
+                switch (t) {
+                    case 'docx':
+                        matched = 'doc';
+                    break;
+                    case 'xlsx':
+                        matched = 'xls';
+                    break;
+                    case 'pptx':
+                        matched = 'ppt';
+                    break;
+                    case 'jpeg':
+                        matched = 'jpg';
+                    break;
+                    case 'html':
+                        matched = 'htm';
+                    break;
+                    default:
+                        matched = t;
+                }
+                break;
+            }
+        }
+        return matched;
+};
+exports.endWith = function(srcStr, tarStr) {
+    var slen = srcStr.length,
+    tlen = tarStr.length;
+    if (typeof srcStr != 'string' || slen < tlen) return false;
+    if (srcStr.substring(slen - tlen) == tarStr)
+        return true;
+    else
+        return false;
+    return true;
+};
+exports.startWith = function(srcStr, tarStr) {
+    var slen = srcStr.length,
+    tlen = tarStr.length;
+    if (typeof srcStr != 'string' || slen < tlen) {
+        return false;
+    }
+    if (srcStr.substr(0, tarStr.length) != tarStr) {
+        return false;
+    }
+    return true;
+};
+exports.parseSpaceShow =  function(size) {
+    var showSize = '';
+    if (size >= 1024 * 1024 * 1024) {
+        showSize = (size / 1024 / 1024 / 1024).toFixed(2) + 'G';
+    } else if (size >= 1024 * 1024 && size < 1024 * 1024 * 1024) {
+        showSize = (size / 1024 / 1024).toFixed(2) + 'M';
+    } else {
+        showSize = (size / 1024).toFixed(2) + 'K';
+    }
+    return showSize;
+};

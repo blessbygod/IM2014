@@ -2,6 +2,7 @@ var config = require('../config'),
 _ = require('underscore'),
 request = require('request'),
 DocumentTemplate = require('./DocumentTemplate'),
+Buffer = require('buffer').Buffer,
 Logger = require('../logger');
 
 var logger = new Logger(window.navigator.userAgent);
@@ -10,29 +11,47 @@ var g_urlRouter = config.get('url_router.json');
 var EventHandler = {
     request: function(params){
         var url = params.url,
-        body = params.body || {},
+        body = params.body,
+        headers = params.headers || {},
+        type = params.type,
         callback = params.callback;
-        body = _.extend({
-            token: process.token,
-            user_id: process.user_id
-        }, body);
+        if(type !== 'stream'){
+            body || (body = {});
+            body = _.extend({
+                token: process.token,
+                user_id: process.user_id
+            }, body);
+            body = JSON.stringify(body);
+        }else{
+            body || (body = '');
+        }
         request.post({
             url: url,
-            body: JSON.stringify(body)
+            headers: headers,
+            body: body
         }, function(err, res){
+            var ret;
             if(err){
                 logger.error(err);
                 return;
             }
-            try{
-                ret = JSON.parse(res.body);
-            }catch(e){
-                logger.error('[' + url + ']body parse error:' + res.body);
-                return;
-            }
-            if(ret.err_code !== 0){
-                logger.error('err_code ' + ret.err_code + ':' + ret.msg);
-                return;
+            if(type === 'stream'){
+                ret = res;
+                if(parseInt(res.headers.err_code, 10) !== 0){
+                    logger.error('err_code ' + res.headers.err_code + ':' + ret.headers.msg);
+                    return;
+                }
+            }else{
+                try{
+                    ret = JSON.parse(res.body);
+                }catch(e){
+                    logger.error('[' + url + ']body parse error:' + res.body);
+                    return;
+                }
+                if(ret.err_code !== 0){
+                    logger.error('err_code ' + ret.err_code + ':' + ret.msg);
+                    return;
+                }
             }
             if(params.callback){
                 params.callback(ret);
@@ -234,6 +253,90 @@ var EventHandler = {
         }
         messages[id].push(data);
         win.localCache.set('messages', messages);
+    },
+    //上传文件
+    uploadFile: function(params){
+        var url = process.FileTransportServerURL + g_urlRouter.FILE_TRANS_UPLOAD;
+        var body = params.body,
+            headers = params.headers;
+        this.request({
+            url: url,
+            type: 'stream',
+            headers: headers,
+            body: body,
+            callback: function(ret){
+                if(params.callback){
+                    params.callback(ret);
+                }
+            }
+        });
+    },
+    downloadFile: function(params){
+        var url = process.FileTransportServerURL + g_urlRouter.FILE_TRANS_DOWNLOAD;
+        var body = params.body,
+            headers = params.headers,
+            buffer_size = params.buffer_size;
+       /* this.request({
+            url: url,
+            type: 'stream',
+            headers: headers,
+            body: body,
+            callback: function(ret){
+                if(params.callback){
+                    params.callback(ret);
+                }
+            }
+        });
+        */
+       var http = require('http');
+       var g_conf_server = config.get('server.json', 'json')[process.AppServerMode];
+       var options = {
+            hostname: g_conf_server.file_transport.ip,
+            port: g_conf_server.file_transport.port,
+            path: g_urlRouter.FILE_TRANS_DOWNLOAD,
+            method: 'POST',
+            headers: headers
+       };
+       var req = http.request(options, function(res){
+           console.log(res);
+           var list = [];
+           res.on('data', function(chunk){
+               list.push(chunk);
+           });
+           res.on('end', function(err){
+            console.log(list.length);
+               var buffer = Buffer.concat(list);
+               console.log(buffer.length);
+               if(params.callback) {
+                   params.callback(buffer);
+               }
+           });
+       });
+       req.on('error', function(e){
+           console.log(e.message);
+       });
+       req.end();
+    },
+    //文件上传窗口渲染
+    renderFileTransportWindowView: function(gui, files, id, type){
+        //打开文件管理窗口
+        if(process.fileTransportWindow){
+            process.fileTransportWindow.appWindow.show();
+            process.fileTransportWindow.appWindow.focus();
+            process.fileTransportWindow.view.renderProcessBar(files, id, type);
+        }else{
+            gui.Window.open('w_file_transport.html', {
+                width: 540,
+                height: 320,
+                position: 'left',
+                frame: false,
+                toolbar: false 
+            });
+            //初始化使用
+            process.files = files;
+            process.queue_id = id;
+            process.queue_type = type;
+        }
     },
     //关闭窗口
     //nw.gui.App.closeAllWindows 窗口可以实现关闭所有窗口,  如果这个方法在windows下流畅的话，closeWIndows这个方法就废弃了

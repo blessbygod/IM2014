@@ -1,8 +1,11 @@
-var Window = require('./scripts/class/window');
+var Window = require('./scripts/class/window'),
+Queue = require('./scripts/class/download_queue'),
 uuid = require('uuid'),
 gui = require('nw.gui'),
 detector = require('detector'),
 utils = require('./utils'),
+fs = require('fs'),
+Buffer = require('buffer').Buffer,
 Logger = require('./logger');
 
 var logger = new Logger(this.navigator.userAgent);
@@ -24,10 +27,12 @@ process.sockjs.onopen = function(e){
         }
     }));
 };
+process.downloadQueues = {};
+process.uploadQueues = {};
 //1.2 消息触发
 process.sockjs.onmessage = function(e){
-    logger.info('----服务器来的消息----:\r\n' + JSON.stringify(e.data));
-    var data = {};
+    console.log('----服务器来的消息----:\r\n' + JSON.stringify(e.data));
+    var data = {}, queue, fingerprint, file;
     try{
         data = JSON.parse(e.data);
     }catch(err){
@@ -60,15 +65,15 @@ process.sockjs.onmessage = function(e){
         case process.I_GROUP_CHAT_MESSAGE:
             //1.2.1 通知会话窗口显示消息
             if(conferenceWindow.hasOwnProperty(id)){
-                conferenceWindow[id].view.onChat(data);
-            }else{
-                //闪动
-               //process.mainWindow.trayIconFlashOnMessage(contact);
-               //process.mainWindow.view.userFlashOnMessage(contact);
-                process.mainWindow.view.showUnreadMessage(contact, data.msg_type);
-            }
-            //1.2.2 把所有消息都保存到本地，客户端退出时清除
-            process.mainWindow.EventHandler.saveMessages(process.mainWindow, data, id);
+            conferenceWindow[id].view.onChat(data);
+        }else{
+            //闪动
+            //process.mainWindow.trayIconFlashOnMessage(contact);
+            //process.mainWindow.view.userFlashOnMessage(contact);
+            process.mainWindow.view.showUnreadMessage(contact, data.msg_type);
+        }
+        //1.2.2 把所有消息都保存到本地，客户端退出时清除
+        process.mainWindow.EventHandler.saveMessages(process.mainWindow, data, id);
         break;
         //被邀请到群
         case process.I_GROUP_JOIN_INVITE:
@@ -76,11 +81,50 @@ process.sockjs.onmessage = function(e){
         break;
         //被群踢出
         case process.I_GROUP_KICK:
-            alert('您已经主动或被动退出了该会话(' + data.msg_content.topic_name + ')');
-            process.mainWindow.view.switchList('conference');
+            alert('您已经退出了该会话(' + data.msg_content.topic_name + ')');
+        process.mainWindow.view.switchList('conference');
         break;
         //服务器返回token已失效的信息
         case process.I_VALIDATE_TOKEN_ERR:
+            break;
+        //弹出对话框要求用户接受请求
+        case process.I_FILE_REQUEST_TRANSPORT:
+            file = {};
+            file.file_name = data.msg_content.name;
+            file.fingerprint = data.msg_content.fingerprint;
+            file.file_size = data.msg_content.total_size;
+            file.doctype = utils.isKnownFileType(file.file_name);
+            process.mainWindow.EventHandler.renderFileTransportWindowView(gui, [file], data.sender, 'download');
+        break;
+        //接收到你准备发送文件的目标用户的响应
+        case process.I_FILE_RESPONSE_ACCEPT_TRANSPORT:
+            fingerprint = data.msg_content.fingerprint;
+            queue = process.uploadQueues[sender];
+            queue.uploadFile(fingerprint);
+        break;
+        case process.I_FILE_RESPONSE_REFUSE_TRANSPORT:
+            break;
+        //服务器通知其他用户发送的文件已接受，通知客户端拉取
+        case process.I_FILE_RANGE_CAN_DOWNLOAD:
+            fingerprint = data.msg_content.fingerprint;
+            var sid = sender + '_' + fingerprint;
+            var view =  process.mainWindow.view;
+            var $fileSaveas = view.$fileSaveas;
+            //检查下载队列中队列的ID，如果为空, 删掉该队列
+            _.each(process.downloadQueues, function(queue, key){
+                if(queue.id === null){
+                    queue.destroy();
+                    delete process.downloadQueues[key];
+                }
+            });
+            if(!process.downloadQueues.hasOwnProperty(sid)){
+                process.downloadQueues[sid] = new Queue(gui, data);
+                view.currentQueue = process.downloadQueues[sid];
+                $fileSaveas.click();
+                }else{
+                    queue = process.downloadQueues[sid];
+                    queue.pushPartFile(data);
+                }
             break;
     }
 };
@@ -107,27 +151,43 @@ var MainWindowView = Backbone.View.extend({
         'dblclick .user, .conference': 'openConferenceWindow',
         'click .create_conference': 'openCreateConferenceWindow',
         'click .toggle_list': 'toggleList',
-        'contextmenu .conference': function(e){
-            var $el = $(e.currentTarget);
-            var view = this;
-            var type = $el.data('type');
-            var topic_name = $el.data('name');
-            var topic_id = $el.attr('id');
-            menuItem.once('click', function(e){
-                view.window.EventHandler.changeTopicMembers({
-                    body:{
-                        topic_name: topic_name,
-                        topic_id: topic_id,
-                        rm_members: [process.user_id]
-                    },
-                    callback: function(){
-                        process.mainWindow.view.switchList('conference');
-                    }
-                });
+        'contextmenu .conference': 'contextmenuConference',
+        'change #file_saveas': 'fileSaveas',
+        'click #file_saveas': 'addNameToFileSaveasInput'
+    },
+    addNameToFileSaveasInput: function(e){
+        //当前传过来文件块的md5值
+        var el = e.currentTarget;
+        el.nwsaveas = this.currentQueue.file_name;
+    },
+    //用户点击另存窗口的保存按钮触发
+    fileSaveas: function(e){
+        var el, path;
+        el = e.currentTarget;
+        path = el.value;
+        this.currentQueue.downloadPartFile(path);
+        el.value = '';
+    },
+    contextmenuConference:function(e){
+        var $el = $(e.currentTarget);
+        var view = this;
+        var type = $el.data('type');
+        var topic_name = $el.data('name');
+        var topic_id = $el.attr('id');
+        menuItem.once('click', function(e){
+            view.window.EventHandler.changeTopicMembers({
+                body:{
+                    topic_name: topic_name,
+                    topic_id: topic_id,
+                    rm_members: [process.user_id]
+                },
+                callback: function(){
+                    process.mainWindow.view.switchList('conference');
+                }
             });
-            contextmenu.popup(e.clientX, e.clientY);
-            return false;
-        }
+        });
+        contextmenu.popup(e.clientX, e.clientY);
+        return false;
     },
     initialize: function(){
         //当前窗口的实例
@@ -169,11 +229,13 @@ var MainWindowView = Backbone.View.extend({
         if(type === process.I_PRIVATE_CHAT_MESSAGE){
             //私聊
             contact = process.contacts[id];
+            if(contact.user_id === process.user_id){
+                return;
+            }
         }else{
             contact = process.conferences[id];
         }
         contact.type = type;
-
         //清除闪动图标,清除消息计数
         if(process.conferenceWindow && process.conferenceWindow[id]){
             //打开或者切换到当前聊天对象的会话窗口
@@ -359,6 +421,7 @@ var MainWindowView = Backbone.View.extend({
         this.$userDetail = this.$el.find('.user_detail');
         this.$userList = this.$el.find('.users');
         this.$conferenceList = this.$el.find('.conferences');
+        this.$fileSaveas = this.$el.find('#file_saveas');
     },
     renderContactList: function(contacts){
         try{
@@ -411,7 +474,6 @@ var MainWindowView = Backbone.View.extend({
             conferences: conferences,
             _: _
         });
-        console.log(_template);
         this.$conferenceList.html(_template);
     },
     render: function(){

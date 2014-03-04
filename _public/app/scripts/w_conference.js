@@ -1,12 +1,13 @@
-var Window = require('./scripts/class/window');
+var Window = require('./scripts/class/window'),
 uuid = require('uuid'),
 fs = require('fs'),
+_ = require('underscore'),
 _crypto = require('crypto'),
-gui = require('nw.gui');
+gui = require('nw.gui'),
+Queue = require('./scripts/class/upload_queue');
 
 var Logger = require('./logger');
 var logger = new Logger(this.navigator.userAgent);
-
 //1.0 定义会话窗口主体的View
 var ConferenceWindowView = Backbone.View.extend({
     el: 'section',
@@ -17,7 +18,6 @@ var ConferenceWindowView = Backbone.View.extend({
     },
     //触发发送消息按钮
     sendMessages: function(e){
-        var view = this;
         var content = this.getContent(),
         user_id = process.user_id,
         msg_type = this.type,
@@ -27,7 +27,7 @@ var ConferenceWindowView = Backbone.View.extend({
 
         //群聊天的id即为topic_id
         topic_id = this.topic_id;
-        view.sendMessage({
+        this.sendMessage({
             topic_id: topic_id,
             message: content,
             msg_type: msg_type,
@@ -61,27 +61,45 @@ var ConferenceWindowView = Backbone.View.extend({
     },
     transportFile: function(e){
         console.log('drop on input or change input');
-        this.transportFiles(e.target.files);
+        //请求上传， 响应再传
+        var files = e.target.files;
+        //上传队列管理
+        if(!process.uploadQueues.hasOwnProperty(this.id)){
+            process.uploadQueues[this.id] = new Queue(this, gui, files);
+        }else{
+            process.uploadQueues[this.id].pushFile(files);
+        }
+        //this.transportFiles(e.target.files);
         e.target.value = '';
     },
     transportFiles: function(files){
-        //console.log(this.transportFiles.caller.toString());
-        //计算md5
+        var view = this;
+        //计算每个文件的md5值
         _.each(files, function(file){
-            var s = fs.ReadStream(file.path);
+            var stream = fs.ReadStream(file.path);
             var md5 = _crypto.createHash('md5');
-            s.on('data', function(data){
-                md5.update(data);
+            var sdate = new Date();
+            stream.on('data', function(chunk){
+                md5.update(chunk);
             });
-            s.on('end', function(){
-                var d = md5.digest('hex');
-                logger.info(d);
+            stream.on('end', function(){
+                var fingerprint = md5.digest('hex');
+                logger.info(fingerprint);
+                var edate = new Date();
+                console.log((edate-sdate)/1000);
+                view.readFileBuffer(file, 0, fingerprint);
             });
         });
     },
     dropOnBody: function(e){
         console.log('drop on...');
-        this.transportFiles(e.dataTransfer.files);
+        //this.transportFiles(e.dataTransfer.files);
+        var files = e.dataTransfer.files;
+        if(!process.uploadQueues.hasOwnProperty(this.id)){
+            process.uploadQueues[this.id] = new Queue(this, gui, files);
+        }else{
+            process.uploadQueues[this.id].pushFile(files);
+        }
     },
     //会话聊天记录的实时显示
     appendToConversation: function(sender, content, timestamp){
@@ -152,8 +170,7 @@ var ConferenceWindowView = Backbone.View.extend({
     initialize: function(){
         //当前窗口的实例
         this.window = this.options.window;
-        this.fileUpoladQueue = {}; //上传文件队列
-        this.fileDownloadQueue = {}; // 下载文件队列
+        this.upoladQueues = {}; //上传文件队列
         this.contact = process.currentConversationContact;
         this.type = this.contact.type;
         if(this.type === process.I_PRIVATE_CHAT_MESSAGE){
@@ -209,15 +226,14 @@ var ConferenceWindowView = Backbone.View.extend({
         });
     },
     render: function(){
-        var view = this;
-        var template = view.window.DocumentTemplate.conference_tpl.join('');
+        var template = this.window.DocumentTemplate.conference_tpl.join('');
         var _template = _.template(template, this);
-        view.$el.html(_template);
-        view.initJQueryElement();
-        view.initWYSIWYG();
-        view.$textarea.focus();
-        view.initOfflineMessages();
-        view.initTopicMembers();
+        this.$el.html(_template);
+        this.initJQueryElement();
+        this.initWYSIWYG();
+        this.$textarea.focus();
+        this.initOfflineMessages();
+        this.initTopicMembers();
     },
     destroy: function(){
     }
@@ -245,7 +261,7 @@ if(!process.conferenceWindow){
     process.conferenceWindow = {};
 }
 if(!process.currentConversationContact){
-    console.log('当前会话窗口无对象!!!!');
+    logger.log('当前会话窗口无对象!!!!');
 }else{
     var id = process.currentConversationContact.id;
     process.conferenceWindow[id] = new ConferenceWindow({
@@ -258,7 +274,6 @@ if(!process.currentConversationContact){
     });
 }
 
-
 //aspect before, after 只能在事件执行前监听；
 //通知其他窗口的事件订阅
 document.body.onkeyup = function(e){
@@ -270,23 +285,20 @@ document.body.onkeyup = function(e){
 
 process.windows.push(process.conferenceWindow[id]);
 
-var dropOnBody = function(e){
-    process.conferenceWindow[id].view.dropOnBody(e);
-};
-var preventDefault = function(e){
+document.body.addEventListener('dragover', function(e){
     e.preventDefault();
     e.stopPropagation();
-};
-
-document.body.addEventListener('dragover', function(e){
-    preventDefault(e);
+    return false;
 }, false);
+//
 document.body.addEventListener('drop', function(e){
-    dropOnBody(e);
-    preventDefault(e);
+    process.conferenceWindow[id].view.dropOnBody(e);
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
 }, false);
 
-//这里是坑，引用事件则失效，事件可以进入，但是禁止不了默认行为。
+//这里是坑，事件句柄是引用的方式则失效，事件可以进入，但是禁止不了默认行为。
 //document.body.addEventListener('drag', preventDefault, false);
 //document.body.addEventListener('dragstart', preventDefault, false);
 //document.body.addEventListener('dragend', preventDefault, false);
