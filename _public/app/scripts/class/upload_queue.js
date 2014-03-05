@@ -44,7 +44,6 @@ var Queue = Base.extend({
             file_data.doctype = utils.isKnownFileType(file.name);
             //计算md5
             queue.calcFileMd5(file, function(fingerprint){
-                console.log(fingerprint);
                 calc_num++;
                 file_data.fingerprint = fingerprint;
                 if(queue.queueKeys.hasOwnProperty(fingerprint)){
@@ -91,6 +90,7 @@ var Queue = Base.extend({
         _.each(this.queue, function(file){
             var _fingerprint = file.fingerprint;
             if(fingerprint === _fingerprint){
+                file.startTime = Date.now();
                 queue.readFileBuffer(file, 0, fingerprint);
             }
         });
@@ -146,22 +146,19 @@ var Queue = Base.extend({
             var fingerprint = this.fingerprint,
                 part_fingerprint = this.part_fingerprint,
                 index = this.index,
+                queue = this.queue,
                 file = this.file;
-                try{
             //关掉文件，如果是非离线状态并发送403请求告诉用户需要下载
             if(this.type !== 'offline'){
-                this.queue.sendCanDownloadRequest(fingerprint, part_fingerprint, index, file.file_name, file.file_size);
+                queue.sendCanDownloadRequest(part_fingerprint, index, file);
             }
             fs.close(this.fd, function(err){
                 if(err){
                     console.error(err.message);
                     return;
                 }
-                this.queue.readFileBuffer(file, ++index, fingerprint);
+                queue.readFileBuffer(file, (index + 1), fingerprint);
             });
-                }catch(ex){
-                    console.log(ex.message);
-                }
         };
         EventHandler.uploadFile({
             headers:{
@@ -187,7 +184,10 @@ var Queue = Base.extend({
         });
     },
     //送403请求告诉用户需要下载
-    sendCanDownloadRequest: function(fingerprint, part_fingerprint, index, file_name, total_size){
+    sendCanDownloadRequest: function(part_fingerprint, index, file){
+        var fingerprint = file.fingerprint,
+            file_name = file.file_name,
+            total_size = file.file_size;
          var body =  {
                 sender: process.user_id,
                 topic_id: this.topic_id,
@@ -204,8 +204,33 @@ var Queue = Base.extend({
                 }
             };
             var messageBody = JSON.stringify(body);
-            console.log(messageBody);
             process.sockjs.send(messageBody);
+            //目前计算按顺序上传
+            this.drawProcessBar(file, index, Date.now());
+    },
+    drawProcessBar: function(file, index, cTime){
+        try{
+        var fingerprint = file.fingerprint,
+            total_size = file.file_size,
+            startTime = file.startTime;
+        var count = Math.ceil(total_size / range);
+        var loaded = index + 1;
+        var loaded_size = loaded === count ? total_size : loaded * range,
+            speed = 0,
+            wasteTime = (cTime - startTime) / 1000;
+        var leftTime = this.calcShowLeftTime(wasteTime, count - loaded);
+        //计算下载速度，计算剩余时间
+        speed = ((loaded_size / 1024) / wasteTime ).toFixed(2);
+        process.fileTransportWindow.view.renderProcessing(fingerprint, total_size, loaded_size, speed, leftTime);
+        }catch(ex){
+            console.log(ex.message);
+        }
+    }, 
+    //计算剩余时间
+    calcShowLeftTime: function(seconds, left_count){
+        var unit = '秒';
+        var show_time = [];
+        return parseInt(seconds, 10) + '秒';
     },
     //计算文件md5
     calcFileMd5: function(file, callback){

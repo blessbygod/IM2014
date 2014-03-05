@@ -18,16 +18,21 @@ var fs = require('fs');
 //3 客户端已存入文件
 // 定时器
 var Queue = Base.extend({
-    initialize: function(gui, firstdata){
+    initialize: function(gui){
         this.queue = [];
+        this.pause = false; // 是否暂停
+        this.abort = false;
+        this.path = gui.App.dataPath;//默认存储文件路径
+    },
+    initFirstData: function(firstdata){
         this.sender = firstdata.sender;
         _.extend(this, firstdata.msg_content);
         this.id = this.sender + '_' + this.fingerprint;
         this.file_name = decodeURIComponent(this.file_name);
-        this.path = gui.App.dataPath;//默认存储文件路径
         this.count = Math.ceil(this.total_size / this.split_size);
+        this.loadedPart = -1;
+        this.startTime = Date.now();
         this.pushPartFile(firstdata, true);
-        this.initTimer();
     },
     //写入文件块到文件里
     writePartFile: function(buffer, part){
@@ -40,18 +45,21 @@ var Queue = Base.extend({
             start: start
         });
         //用流写入文件
-        writeStream.write(buffer, function(err){
+        writeStream.write(buffer);
+        writeStream.end(function(err){
+            if(err){
+                console.log(err);
+                return;
+            }
             console.log('part ' + (index) +' write ok!!!');
-            console.log(part);
-            console.log(fd);
             part.status = 3;
-            fs.closeSync(fd);
+            fs.close(fd);
         });
         /*fs.write(fd, buffer, 0, buffer.length, position, function(err, buffer){
             console.log('part ' + (index) +' write ok!!!');
             part.status = 3;
             fs.closeSync(fd);
-        });
+        });   
         */
     },
     //拉取服务器已经下载好的文件
@@ -98,10 +106,14 @@ var Queue = Base.extend({
     checkQueue: function(){
         var queue  = this;
         var path = queue.path;
-        var complete_part = 0;
+        var loaded_part = 0;
         console.log(new Date().toLocaleTimeString());
         //校验队列文件块的状态, 发现已通知的文件，拉取
-        try{
+        var leftParts = [];
+        if(this.pause || this.abort){
+            this.clearTimer();
+            return;
+        }
         _.each(this.queue, function(part){
             if(part.status === 0){
                 //拉取文件
@@ -109,21 +121,46 @@ var Queue = Base.extend({
                 queue.downloadPartFile(path, part);
             }
             if(part.status === 3){
-                complete_part++;
+                loaded_part++;
+            }else{
+                leftParts.push(part.index); 
             }
         });
-        }catch(ex){
-            console.log(ex.message);
+        console.log('还没有下载的块:' + leftParts.join());
+        //画进度条, 只划分块的进度
+        if(this.loadedPart < loaded_part){
+            this.drawProcessBar(loaded_part, Date.now());
+            this.loadedPart = loaded_part;
         }
         //取消定时器
-        if(complete_part === this.count){
-            clearInterval(this.timer);
+        if(loaded_part === this.count){
+            this.clearTimer();
             this.id = null;
             console.log('文件:' + this.fingerprint + '(下载完成)');
         }
     },
+    drawProcessBar: function(loaded, cTime){
+        var fingerprint = this.fingerprint,
+            total_size = this.total_size,
+            loaded_size = loaded !== this.count ? loaded * this.split_size : this.total_size,
+            speed = 0,
+            wasteTime = (cTime - this.startTime) / 1000;
+        var leftTime = this.calcShowLeftTime(wasteTime, this.count - loaded);
+        //计算下载速度，计算剩余时间
+        speed = ((loaded_size / 1024) / wasteTime ).toFixed(2);
+        process.fileTransportWindow.view.renderProcessing(fingerprint, total_size, loaded_size, speed, leftTime);
+    },
+    //计算剩余时间
+    calcShowLeftTime: function(seconds, left_count){
+        var unit = '秒';
+        var show_time = [];
+        return parseInt(seconds, 10) + '秒';
+    },
     initTimer: function(){
-        this.timer = setInterval(_.bind(this.checkQueue, this), 5000);
+        this.timer = setInterval(_.bind(this.checkQueue, this), 1000);
+    },
+    clearTimer: function(){
+        clearInterval(this.timer);
     },
     destroy: function(){
     

@@ -2,6 +2,7 @@ var Window = require('./scripts/class/window'),
 gui = require('nw.gui'),
 utils = require('./utils'),
 uuid = require('uuid'),
+Queue = require('./scripts/class/download_queue'),
 Logger = require('./logger');
 
 var logger = new Logger(this.navigator.userAgent);
@@ -19,25 +20,31 @@ var FileTransportWindowView = Backbone.View.extend({
         var type = $el.data('type');
         var $li = $el.closest('li.file_transport_info');
         var fingerprint = $li.attr('id'),
-            user_id = $li.data('userid');
+            user_id = $li.data('userid'),
+            file_name = $li.data('name'),
+            file_size = parseInt($li.data('file_size'), 10);
         var topic_id = process.contacts[user_id].topic_id;
+        var split_size = process.I_FILE_RANGE;
         var $actionImgs = this.getActionImgs(fingerprint);
         if(type === 'upload'){
         
         }else{
-            //如果是下载, 发送接收文件的响应
-            var body =  {
-                sender: process.user_id,
-                msg_type: process.I_FILE_RESPONSE_ACCEPT_TRANSPORT,
-                topic_id: topic_id,
-                uuid: uuid.v1(),
-                msg_content: {
-                    encryption: null,
-                    fingerprint: fingerprint
-                }
-            };
-            var messageBody = JSON.stringify(body);
-            process.sockjs.send(messageBody);
+            //触发保存按钮，增强用户体验
+            var sid = user_id + '_' + fingerprint;
+            if(!process.downloadQueues.hasOwnProperty(sid)){
+                process.downloadQueues[sid] = new Queue(gui);
+                porcess.mainWindow.currentFirstData = {
+                    sender: user_id,
+                    msg_content: {
+                        fingerprint: fingerprint,
+                        file_name: file_name,
+                        total_size: file_size,
+                        split_size: split_size
+                    }
+                };
+                process.mainWindow.view.currentQueue =  process.downloadQueues[sid];
+                process.mainWindow.view.$fileSaveas.click();
+            }
         }
         $actionImgs.hide();
     },
@@ -115,6 +122,18 @@ var FileTransportWindowView = Backbone.View.extend({
             htmls.push(html);
         });
         this.$fileList.append(htmls.join(''));
+    },
+    renderProcessing: function(fingerprint,total_size, loaded_size, speed, leftTime){
+         var $fingerprint = this.$el.find('#' + fingerprint);
+         var $loading = $fingerprint.find('.process_loading');
+         var $rate = $fingerprint.find('.process_rate');
+         var $speed = $fingerprint.find('.speed');
+         var $leftTime = $fingerprint.find('.left_time');
+         var process = ((loaded_size / total_size) * 100).toFixed(2) + '%';
+         $rate.html(process);
+         $loading.width(process);
+         $speed.html(speed);
+         $leftTime.html(leftTime);
     },
     render: function(){
         var template = this.window.DocumentTemplate.file_transport_tpl.join('');

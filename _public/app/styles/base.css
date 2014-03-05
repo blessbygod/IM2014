@@ -26,6 +26,9 @@ ul li{
 input[type="file"]{
     width: 80px !important;
 }
+label{
+    display: inline-block !important;
+}
 
 /* loginWindow */
 .error{
@@ -292,4 +295,8 @@ input[type="file"]{
     height: 100%;
     width: 0%;
     background-color: blue;
+}
+
+.left_time{
+    margin-left: 40px;
 }

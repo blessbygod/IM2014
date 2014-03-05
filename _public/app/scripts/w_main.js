@@ -108,8 +108,6 @@ process.sockjs.onmessage = function(e){
         case process.I_FILE_RANGE_CAN_DOWNLOAD:
             fingerprint = data.msg_content.fingerprint;
             var sid = sender + '_' + fingerprint;
-            var view =  process.mainWindow.view;
-            var $fileSaveas = view.$fileSaveas;
             //检查下载队列中队列的ID，如果为空, 删掉该队列
             _.each(process.downloadQueues, function(queue, key){
                 if(queue.id === null){
@@ -118,13 +116,12 @@ process.sockjs.onmessage = function(e){
                 }
             });
             if(!process.downloadQueues.hasOwnProperty(sid)){
-                process.downloadQueues[sid] = new Queue(gui, data);
+                process.downloadQueues[sid] = new Queue(gui);
                 view.currentQueue = process.downloadQueues[sid];
-                $fileSaveas.click();
-                }else{
-                    queue = process.downloadQueues[sid];
-                    queue.pushPartFile(data);
-                }
+            }else{
+                queue = process.downloadQueues[sid];
+                queue.pushPartFile(data);
+            }
             break;
     }
 };
@@ -158,14 +155,29 @@ var MainWindowView = Backbone.View.extend({
     addNameToFileSaveasInput: function(e){
         //当前传过来文件块的md5值
         var el = e.currentTarget;
-        el.nwsaveas = this.currentQueue.file_name;
+        el.nwsaveas = this.currentFirstData.file_name;
     },
     //用户点击另存窗口的保存按钮触发
     fileSaveas: function(e){
         var el, path;
         el = e.currentTarget;
         path = el.value;
+        this.currentQueue.initFirstData(this.currentFirstData);
         this.currentQueue.downloadPartFile(path);
+        this.currentQueue.initTimer();
+        //如果是下载, 发送接收文件的响应
+        var body =  {
+            sender: process.user_id,
+            msg_type: process.I_FILE_RESPONSE_ACCEPT_TRANSPORT,
+            topic_id: topic_id,
+            uuid: uuid.v1(),
+            msg_content: {
+                encryption: null,
+                fingerprint: fingerprint
+            }
+        };
+        var messageBody = JSON.stringify(body);
+        process.sockjs.send(messageBody);
         el.value = '';
     },
     contextmenuConference:function(e){
