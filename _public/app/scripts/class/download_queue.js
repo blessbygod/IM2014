@@ -34,6 +34,17 @@ var Queue = Base.extend({
         this.startTime = Date.now();
         this.pushPartFile(firstdata, true);
     },
+    //推入队列
+    pushPartFile: function(data, isFirst){
+        var part = {};
+        part.status = 0;
+        part.fingerprint = data.msg_content.part_fingerprint;
+        part.index = data.msg_content.index;
+        if(isFirst){
+            this.part = part;
+        }
+        this.queue.push(part);
+    },
     //写入文件块到文件里
     writePartFile: function(buffer, part){
         var index = part.index;
@@ -59,7 +70,7 @@ var Queue = Base.extend({
             console.log('part ' + (index) +' write ok!!!');
             part.status = 3;
             fs.closeSync(fd);
-        });   
+        });
         */
     },
     //拉取服务器已经下载好的文件
@@ -91,17 +102,6 @@ var Queue = Base.extend({
             }
         });
     },
-    //推入队列
-    pushPartFile: function(data, isFirst){
-        var part = {};
-        part.status = 0;
-        part.fingerprint = data.msg_content.part_fingerprint;
-        part.index = data.msg_content.index;
-        if(isFirst){
-            this.part = part;
-        }
-        this.queue.push(part);
-    },
     //定时检查队列
     checkQueue: function(){
         var queue  = this;
@@ -109,11 +109,16 @@ var Queue = Base.extend({
         var loaded_part = 0;
         console.log(new Date().toLocaleTimeString());
         //校验队列文件块的状态, 发现已通知的文件，拉取
-        var leftParts = [];
+        this.leftParts = [];
         if(this.pause || this.abort){
             this.clearTimer();
             return;
         }
+        if(process.I_HTTP_CONNECT_COUNT >= process.I_LIMIT_HTTP_CONNECT){
+            console.log('连接数超限制');
+            return;
+        }
+        try{
         _.each(this.queue, function(part){
             if(part.status === 0){
                 //拉取文件
@@ -123,10 +128,10 @@ var Queue = Base.extend({
             if(part.status === 3){
                 loaded_part++;
             }else{
-                leftParts.push(part.index); 
+                queue.leftParts.push(part.index);
             }
         });
-        console.log('还没有下载的块:' + leftParts.join());
+        console.log(queue.leftParts);
         //画进度条, 只划分块的进度
         if(this.loadedPart < loaded_part){
             this.drawProcessBar(loaded_part, Date.now());
@@ -138,23 +143,26 @@ var Queue = Base.extend({
             this.id = null;
             console.log('文件:' + this.fingerprint + '(下载完成)');
         }
+        }catch(ex){
+            console.log(ex.message);
+        }
     },
     drawProcessBar: function(loaded, cTime){
         var fingerprint = this.fingerprint,
-            total_size = this.total_size,
-            loaded_size = loaded !== this.count ? loaded * this.split_size : this.total_size,
+            total_size = this.total_size;
+        var loaded_size = loaded !== this.count ? loaded * this.split_size : total_size,
             speed = 0,
             wasteTime = (cTime - this.startTime) / 1000;
-        var leftTime = this.calcShowLeftTime(wasteTime, this.count - loaded);
         //计算下载速度，计算剩余时间
-        speed = ((loaded_size / 1024) / wasteTime ).toFixed(2);
+        speed = (loaded_size/1024/wasteTime ).toFixed(2);
+        var left_size = total_size - loaded_size;
+        var leftTime = this.calcShowLeftTime(speed, left_size);
         process.fileTransportWindow.view.renderProcessing(fingerprint, total_size, loaded_size, speed, leftTime);
     },
-    //计算剩余时间
-    calcShowLeftTime: function(seconds, left_count){
+    calcShowLeftTime: function(speed, left_size){
         var unit = '秒';
         var show_time = [];
-        return parseInt(seconds, 10) + '秒';
+        return parseInt(left_size/1024/speed, 10) + unit;
     },
     initTimer: function(){
         this.timer = setInterval(_.bind(this.checkQueue, this), 1000);
@@ -163,9 +171,6 @@ var Queue = Base.extend({
         clearInterval(this.timer);
     },
     destroy: function(){
-    
     }
 });
-
-
 module.exports = Queue;

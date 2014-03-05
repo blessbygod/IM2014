@@ -5,7 +5,6 @@ uuid = require('uuid'),
 Crypto = require('crypto'),
 EventHandler = require('../EventHandler');
 
-console.log(Crypto);
 var fs = require('fs');
 var range = process.I_FILE_RANGE;
 
@@ -79,7 +78,6 @@ var Queue = Base.extend({
                     total_size: file.file_size
                 }
             };
-            console.log(body);
             var messageBody = JSON.stringify(body);
             process.sockjs.send(messageBody);
         });
@@ -173,6 +171,7 @@ var Queue = Base.extend({
                 index: index
             },
             body: buffer,
+            retryTimes: 3,
             callback: _.bind(callback, {
                 fd: fd,
                 file: file,
@@ -209,7 +208,6 @@ var Queue = Base.extend({
             this.drawProcessBar(file, index, Date.now());
     },
     drawProcessBar: function(file, index, cTime){
-        try{
         var fingerprint = file.fingerprint,
             total_size = file.file_size,
             startTime = file.startTime;
@@ -218,19 +216,17 @@ var Queue = Base.extend({
         var loaded_size = loaded === count ? total_size : loaded * range,
             speed = 0,
             wasteTime = (cTime - startTime) / 1000;
-        var leftTime = this.calcShowLeftTime(wasteTime, count - loaded);
         //计算下载速度，计算剩余时间
-        speed = ((loaded_size / 1024) / wasteTime ).toFixed(2);
+        speed = (loaded_size/1024/wasteTime ).toFixed(2);
+        var left_size = total_size - loaded_size;
+        var leftTime = this.calcShowLeftTime(speed, left_size);
         process.fileTransportWindow.view.renderProcessing(fingerprint, total_size, loaded_size, speed, leftTime);
-        }catch(ex){
-            console.log(ex.message);
-        }
-    }, 
+    },
     //计算剩余时间
-    calcShowLeftTime: function(seconds, left_count){
+    calcShowLeftTime: function(speed, left_size){
         var unit = '秒';
         var show_time = [];
-        return parseInt(seconds, 10) + '秒';
+        return parseInt(left_size/1024/speed, 10) + unit;
     },
     //计算文件md5
     calcFileMd5: function(file, callback){

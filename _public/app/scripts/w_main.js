@@ -27,8 +27,6 @@ process.sockjs.onopen = function(e){
         }
     }));
 };
-process.downloadQueues = {};
-process.uploadQueues = {};
 //1.2 消息触发
 process.sockjs.onmessage = function(e){
     console.log('----服务器来的消息----:\r\n' + JSON.stringify(e.data));
@@ -133,7 +131,6 @@ process.sockjs.onclose = function(e){
 process.sockjs.onerror = function(){
 };
 
-
 //会话右键菜单
 var contextmenu = new gui.Menu();
 var menuItem = new gui.MenuItem({
@@ -155,7 +152,7 @@ var MainWindowView = Backbone.View.extend({
     addNameToFileSaveasInput: function(e){
         //当前传过来文件块的md5值
         var el = e.currentTarget;
-        el.nwsaveas = this.currentFirstData.file_name;
+        el.nwsaveas = this.currentFirstData.msg_content.file_name;
     },
     //用户点击另存窗口的保存按钮触发
     fileSaveas: function(e){
@@ -163,17 +160,17 @@ var MainWindowView = Backbone.View.extend({
         el = e.currentTarget;
         path = el.value;
         this.currentQueue.initFirstData(this.currentFirstData);
-        this.currentQueue.downloadPartFile(path);
         this.currentQueue.initTimer();
+        this.currentQueue.downloadPartFile(path);
         //如果是下载, 发送接收文件的响应
         var body =  {
             sender: process.user_id,
             msg_type: process.I_FILE_RESPONSE_ACCEPT_TRANSPORT,
-            topic_id: topic_id,
+            topic_id: this.currentFirstData.topic_id,
             uuid: uuid.v1(),
             msg_content: {
                 encryption: null,
-                fingerprint: fingerprint
+                fingerprint: this.currentFirstData.msg_content.fingerprint
             }
         };
         var messageBody = JSON.stringify(body);
@@ -273,7 +270,7 @@ var MainWindowView = Backbone.View.extend({
                 height: 440,
                 position: 'left',
                 frame: true,
-                toolbar: true 
+                toolbar: true
             });
         };
         if(!topic_id){

@@ -22,7 +22,7 @@ var FileTransportWindowView = Backbone.View.extend({
         var fingerprint = $li.attr('id'),
             user_id = $li.data('userid'),
             file_name = $li.data('name'),
-            file_size = parseInt($li.data('file_size'), 10);
+            file_size = parseInt($li.data('size'), 10);
         var topic_id = process.contacts[user_id].topic_id;
         var split_size = process.I_FILE_RANGE;
         var $actionImgs = this.getActionImgs(fingerprint);
@@ -33,11 +33,13 @@ var FileTransportWindowView = Backbone.View.extend({
             var sid = user_id + '_' + fingerprint;
             if(!process.downloadQueues.hasOwnProperty(sid)){
                 process.downloadQueues[sid] = new Queue(gui);
-                porcess.mainWindow.currentFirstData = {
+                process.mainWindow.view.currentFirstData = {
                     sender: user_id,
+                    topic_id: topic_id,
                     msg_content: {
                         fingerprint: fingerprint,
                         file_name: file_name,
+                        index: 0,
                         total_size: file_size,
                         split_size: split_size
                     }
@@ -125,6 +127,8 @@ var FileTransportWindowView = Backbone.View.extend({
     },
     renderProcessing: function(fingerprint,total_size, loaded_size, speed, leftTime){
          var $fingerprint = this.$el.find('#' + fingerprint);
+         var $actionImgs = this.getActionImgs(fingerprint); 
+         var $info = $fingerprint.find('.info');
          var $loading = $fingerprint.find('.process_loading');
          var $rate = $fingerprint.find('.process_rate');
          var $speed = $fingerprint.find('.speed');
@@ -134,6 +138,10 @@ var FileTransportWindowView = Backbone.View.extend({
          $loading.width(process);
          $speed.html(speed);
          $leftTime.html(leftTime);
+         if(process === 100){
+             $info.html('文件已经下载完成');
+             $actionImgs.hide();
+         }
     },
     render: function(){
         var template = this.window.DocumentTemplate.file_transport_tpl.join('');

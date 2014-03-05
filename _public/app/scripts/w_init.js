@@ -50,3 +50,12 @@ process.I_FILE_OFFLINE_TRANSPORT = 406; //离线文件传输通知
 //分割定义
 process.CONFERENCE_SPLIT_FLAG = '|';
 process.CACHE_SPLIT_FLAG = '|';
+
+//上下载队列
+process.downloadQueues = {};
+process.uploadQueues = {};
+
+//整体http连接数控制
+process.I_LIMIT_HTTP_CONNECT = 6; //chrome 允许同时进行的http连接数为6
+process.I_HTTP_CONNECT_COUNT = 0; //实际连接数
+

@@ -10,11 +10,13 @@ var logger = new Logger(window.navigator.userAgent);
 var g_urlRouter = config.get('url_router.json');
 var EventHandler = {
     request: function(params){
+        var handler = this;
         var url = params.url,
         body = params.body,
         headers = params.headers || {},
         type = params.type,
-        callback = params.callback;
+        callback = params.callback,
+        retrytimes = params.retry_times || 1;
         if(type !== 'stream'){
             body || (body = {});
             body = _.extend({
@@ -38,6 +40,11 @@ var EventHandler = {
             if(type === 'stream'){
                 ret = res;
                 if(parseInt(res.headers.err_code, 10) !== 0){
+                    //重新请求，受重试次数限制
+                    if(params.retryTimes !== 0){
+                        params.retryTimes = retryTimes - 1;
+                        handler.request(params);
+                    }
                     logger.error('err_code ' + res.headers.err_code + ':' + ret.headers.msg);
                     return;
                 }
@@ -276,18 +283,7 @@ var EventHandler = {
         var body = params.body,
             headers = params.headers,
             buffer_size = params.buffer_size;
-       /* this.request({
-            url: url,
-            type: 'stream',
-            headers: headers,
-            body: body,
-            callback: function(ret){
-                if(params.callback){
-                    params.callback(ret);
-                }
-            }
-        });
-        */
+            //这块不能用request模块来下载，会丢失部分字节
        var http = require('http');
        var g_conf_server = config.get('server.json', 'json')[process.AppServerMode];
        var options = {
@@ -297,22 +293,24 @@ var EventHandler = {
             method: 'POST',
             headers: headers
        };
+       process.I_HTTP_CONNECT_COUNT += 1;
+       console.log('http连接数:' + process.I_HTTP_CONNECT_COUNT);
        var req = http.request(options, function(res){
-           console.log(res);
            var list = [];
            res.on('data', function(chunk){
                list.push(chunk);
            });
            res.on('end', function(err){
-            console.log(list.length);
+               process.I_HTTP_CONNECT_COUNT -= 1;
+               console.log('http连接数:' + process.I_HTTP_CONNECT_COUNT);
                var buffer = Buffer.concat(list);
-               console.log(buffer.length);
                if(params.callback) {
                    params.callback(buffer);
                }
            });
        });
        req.on('error', function(e){
+           process.I_HTTP_CONNECT_COUNT -= 1;
            console.log(e.message);
        });
        req.end();
