@@ -96,9 +96,14 @@ process.sockjs.onmessage = function(e){
         break;
         //接收到你准备发送文件的目标用户的响应
         case process.I_FILE_RESPONSE_ACCEPT_TRANSPORT:
+            try{
             fingerprint = data.msg_content.fingerprint;
             queue = process.uploadQueues[sender];
             queue.uploadFile(fingerprint);
+            process.fileTransportWindow.view.renderMemo(fingerprint, sender, data.msg_type);
+            }catch(ex){
+                console.log(ex.message);
+            }
         break;
         case process.I_FILE_RESPONSE_REFUSE_TRANSPORT:
             break;
@@ -159,9 +164,10 @@ var MainWindowView = Backbone.View.extend({
         var el, path;
         el = e.currentTarget;
         path = el.value;
+        try{
+        this.currentFirstData.msg_content.path = path;
         this.currentQueue.initFirstData(this.currentFirstData);
         this.currentQueue.initTimer();
-        this.currentQueue.downloadPartFile(path);
         //如果是下载, 发送接收文件的响应
         var body =  {
             sender: process.user_id,
@@ -176,6 +182,9 @@ var MainWindowView = Backbone.View.extend({
         var messageBody = JSON.stringify(body);
         process.sockjs.send(messageBody);
         el.value = '';
+        }catch(ex){
+            console.log(ex.message);
+        }
     },
     contextmenuConference:function(e){
         var $el = $(e.currentTarget);

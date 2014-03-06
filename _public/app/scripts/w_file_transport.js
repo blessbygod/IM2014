@@ -19,18 +19,18 @@ var FileTransportWindowView = Backbone.View.extend({
         var $el = $(el);
         var type = $el.data('type');
         var $li = $el.closest('li.file_transport_info');
-        var fingerprint = $li.attr('id'),
+        var sid = $li.attr('id'),
+            fingerprint = $li.data('fingerprint'),
             user_id = $li.data('userid'),
             file_name = $li.data('name'),
             file_size = parseInt($li.data('size'), 10);
         var topic_id = process.contacts[user_id].topic_id;
         var split_size = process.I_FILE_RANGE;
-        var $actionImgs = this.getActionImgs(fingerprint);
+        var $actionImgs = this.getActionImgs(user_id, fingerprint);
         if(type === 'upload'){
         
         }else{
             //触发保存按钮，增强用户体验
-            var sid = user_id + '_' + fingerprint;
             if(!process.downloadQueues.hasOwnProperty(sid)){
                 process.downloadQueues[sid] = new Queue(gui);
                 process.mainWindow.view.currentFirstData = {
@@ -39,7 +39,7 @@ var FileTransportWindowView = Backbone.View.extend({
                     msg_content: {
                         fingerprint: fingerprint,
                         file_name: file_name,
-                        index: 0,
+                        index: -1,
                         total_size: file_size,
                         split_size: split_size
                     }
@@ -72,7 +72,6 @@ var FileTransportWindowView = Backbone.View.extend({
                     fingerprint: fingerprint
                 }
             };
-            console.log(body);
             var messageBody = JSON.stringify(body);
             process.sockjs.send(messageBody);
         }
@@ -81,9 +80,10 @@ var FileTransportWindowView = Backbone.View.extend({
     initJQueryElement: function(){
         this.$fileList = this.$el.find('ul.file_list');
     },
-    getActionImgs: function(fingerprint, selector){
+    getActionImgs: function(id, fingerprint, selector){
+        var fid = id + '_' + fingerprint;
         selector ||(selector = '.confirm, .cancel');
-        return this.$el.find('#' + fingerprint).find(selector);
+        return this.$el.find('[id=""' + fid + '""]').find(selector);
     },
     initialize: function(){
             this.window = this.options.window;
@@ -97,8 +97,10 @@ var FileTransportWindowView = Backbone.View.extend({
         var template = this.window.DocumentTemplate.process_loading_tpl.join(''),
             confirm_png = 'offline_down.png';
         _.each(files, function(file){
-            var $fingerprint = view.$el.find('#' + file.fingerprint);
-            var $actionImgs = view.getActionImgs(file.fingerprint); 
+            var fingerprint = file.fingerprint;
+            var fid = id + '_' + fingerprint;
+            var $fingerprint = view.$el.find('[id="' + fid + '"]');
+            var $actionImgs = view.getActionImgs(id, file.fingerprint);
             if(type === 'upload'){
                 if(file.status === 3 && $fingerprint.length ){
                     memo = '文件' + file.file_name + '正在发送中，请不要重复发送';
@@ -125,9 +127,10 @@ var FileTransportWindowView = Backbone.View.extend({
         });
         this.$fileList.append(htmls.join(''));
     },
-    renderProcessing: function(fingerprint,total_size, loaded_size, speed, leftTime){
-         var $fingerprint = this.$el.find('#' + fingerprint);
-         var $actionImgs = this.getActionImgs(fingerprint); 
+    renderProcessing: function(id, fingerprint,total_size, loaded_size, speed, leftTime){
+        var fid = id + '_' + fingerprint;
+         var $fingerprint = this.$el.find('[id="' + fid + '"]');
+         var $actionImgs = this.getActionImgs(id, fingerprint); 
          var $info = $fingerprint.find('.info');
          var $loading = $fingerprint.find('.process_loading');
          var $rate = $fingerprint.find('.process_rate');
@@ -138,10 +141,20 @@ var FileTransportWindowView = Backbone.View.extend({
          $loading.width(process);
          $speed.html(speed);
          $leftTime.html(leftTime);
-         if(process === 100){
+         if(process === 100.00){
              $info.html('文件已经下载完成');
              $actionImgs.hide();
          }
+    },
+    renderMemo: function(fingerprint, sender, msg_type){
+        var memo = '';
+        var fid = sender + '_' + fingerprint;
+        switch(msg_type){
+            case process.I_FILE_RESPONSE_ACCEPT_TRANSPORT:
+                memo = sender + '正在接收文件';
+            break;
+        }
+        var $fingerprint = this.$el.find('[id="' + fid + '"]');
     },
     render: function(){
         var template = this.window.DocumentTemplate.file_transport_tpl.join('');

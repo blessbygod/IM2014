@@ -84,6 +84,7 @@ var Queue = Base.extend({
     },
     //主动离线下载或者是由接受文件用户响应来自动下载某文件
     uploadFile: function(fingerprint){
+        //这里应该有id+'_' + fingerprint;
         var queue = this;
         _.each(this.queue, function(file){
             var _fingerprint = file.fingerprint;
@@ -139,7 +140,6 @@ var Queue = Base.extend({
         }));
     },
     uploadRangeFile: function(fd, file, index, buffer, fingerprint, part_fingerprint){
-        console.log('ready for uploadRangeFile :' + (index + 1));
         var callback = function(){
             var fingerprint = this.fingerprint,
                 part_fingerprint = this.part_fingerprint,
@@ -150,6 +150,7 @@ var Queue = Base.extend({
             if(this.type !== 'offline'){
                 queue.sendCanDownloadRequest(part_fingerprint, index, file);
             }
+            console.log('关闭文件');
             fs.close(this.fd, function(err){
                 if(err){
                     console.error(err.message);
@@ -220,7 +221,7 @@ var Queue = Base.extend({
         speed = (loaded_size/1024/wasteTime ).toFixed(2);
         var left_size = total_size - loaded_size;
         var leftTime = this.calcShowLeftTime(speed, left_size);
-        process.fileTransportWindow.view.renderProcessing(fingerprint, total_size, loaded_size, speed, leftTime);
+        process.fileTransportWindow.view.renderProcessing(this.id, fingerprint, total_size, loaded_size, speed, leftTime);
     },
     //计算剩余时间
     calcShowLeftTime: function(speed, left_size){

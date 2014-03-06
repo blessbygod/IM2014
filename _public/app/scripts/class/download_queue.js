@@ -32,15 +32,16 @@ var Queue = Base.extend({
         this.count = Math.ceil(this.total_size / this.split_size);
         this.loadedPart = -1;
         this.startTime = Date.now();
-        this.pushPartFile(firstdata, true);
+        //this.pushPartFile(firstdata, true);
     },
     //推入队列
-    pushPartFile: function(data, isFirst){
+    pushPartFile: function(data){
         var part = {};
         part.status = 0;
         part.fingerprint = data.msg_content.part_fingerprint;
         part.index = data.msg_content.index;
-        if(isFirst){
+        //可能第一块后过来，这块还得再改更稳妥的方案
+        if(part.index === 0){
             this.part = part;
         }
         this.queue.push(part);
@@ -48,6 +49,7 @@ var Queue = Base.extend({
     //写入文件块到文件里
     writePartFile: function(buffer, part){
         var index = part.index;
+        console.log('path:' + this.path);
         var fd = fs.openSync(this.path, 'a+');
         var start = index * this.split_size;
         var writeStream = fs.createWriteStream(this.path, {
@@ -118,7 +120,6 @@ var Queue = Base.extend({
             console.log('连接数超限制');
             return;
         }
-        try{
         _.each(this.queue, function(part){
             if(part.status === 0){
                 //拉取文件
@@ -143,9 +144,6 @@ var Queue = Base.extend({
             this.id = null;
             console.log('文件:' + this.fingerprint + '(下载完成)');
         }
-        }catch(ex){
-            console.log(ex.message);
-        }
     },
     drawProcessBar: function(loaded, cTime){
         var fingerprint = this.fingerprint,
@@ -157,7 +155,7 @@ var Queue = Base.extend({
         speed = (loaded_size/1024/wasteTime ).toFixed(2);
         var left_size = total_size - loaded_size;
         var leftTime = this.calcShowLeftTime(speed, left_size);
-        process.fileTransportWindow.view.renderProcessing(fingerprint, total_size, loaded_size, speed, leftTime);
+        process.fileTransportWindow.view.renderProcessing(this.sender, fingerprint, total_size, loaded_size, speed, leftTime);
     },
     calcShowLeftTime: function(speed, left_size){
         var unit = '秒';

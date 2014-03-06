@@ -207,7 +207,7 @@ var DocumentTemplate = {
         '</div>'
     ],
     process_loading_tpl: [
-        '<li class="file_transport_info" id="<%= fingerprint %>" data-userid="<%= user_id %>" data-name="<%= file_name %>" data-size="<%= file_size %>" >',
+        '<li class="file_transport_info" id="<%= user_id %>_<%= fingerprint %>" data-fingerprint="<%= fingerprint %>" data-userid="<%= user_id %>" data-name="<%= file_name %>" data-size="<%= file_size %>" >',
             '<span class="portrait">',
                 '<img src="<%= portrait %>" />',
                 '<img src="images/fileicons/<%= doctype %>.gif" />',
