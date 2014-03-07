@@ -108,6 +108,7 @@ var Queue = Base.extend({
             var md5 = Crypto.createHash('md5');
             md5.update(this.buffer);
             var part_fingerprint = md5.digest('hex');
+            console.log('part_md5:' + part_fingerprint);
             this.queue.uploadRangeFile(this.fd, this.file, this.index, this.buffer, this.fingerprint, part_fingerprint);
         };
         var readPathFunc = function(err, fd) {
@@ -122,6 +123,7 @@ var Queue = Base.extend({
                 _range = file.file_size - start;
             }
             var buffer = new Buffer(_range);
+            console.log('range:' + _range);
             fs.read(fd, buffer, 0, _range, start, _.bind(readBufferFunc, {
                 fd: fd,
                 fingerprint: this.fingerprint,
@@ -140,6 +142,7 @@ var Queue = Base.extend({
         }));
     },
     uploadRangeFile: function(fd, file, index, buffer, fingerprint, part_fingerprint){
+        try{
         var callback = function(){
             var fingerprint = this.fingerprint,
                 part_fingerprint = this.part_fingerprint,
@@ -182,6 +185,9 @@ var Queue = Base.extend({
                 queue: this
             })
         });
+        }catch(ex){
+            console.log(ex.message);
+        }
     },
     //送403请求告诉用户需要下载
     sendCanDownloadRequest: function(part_fingerprint, index, file){

@@ -63,15 +63,16 @@ process.sockjs.onmessage = function(e){
         case process.I_GROUP_CHAT_MESSAGE:
             //1.2.1 通知会话窗口显示消息
             if(conferenceWindow.hasOwnProperty(id)){
-            conferenceWindow[id].view.onChat(data);
-        }else{
-            //闪动
-            //process.mainWindow.trayIconFlashOnMessage(contact);
-            //process.mainWindow.view.userFlashOnMessage(contact);
-            process.mainWindow.view.showUnreadMessage(contact, data.msg_type);
-        }
-        //1.2.2 把所有消息都保存到本地，客户端退出时清除
-        process.mainWindow.EventHandler.saveMessages(process.mainWindow, data, id);
+                conferenceWindow[id].view.onChat(data);
+            }else{
+                //闪动
+                //process.mainWindow.trayIconFlashOnMessage(contact);
+                //process.mainWindow.view.userFlashOnMessage(contact);
+                //会话列表在离线消息前已经加载
+                process.mainWindow.view.showUnreadMessage(contact, data.msg_type);
+            }
+            //1.2.2 把所有消息都保存到本地，客户端退出时清除
+            process.mainWindow.EventHandler.saveMessages(process.mainWindow, data, id);
         break;
         //被邀请到群
         case process.I_GROUP_JOIN_INVITE:
@@ -94,20 +95,17 @@ process.sockjs.onmessage = function(e){
             file.doctype = utils.isKnownFileType(file.file_name);
             process.mainWindow.EventHandler.renderFileTransportWindowView(gui, [file], data.sender, 'download');
         break;
-        //接收到你准备发送文件的目标用户的响应
+        //接收到你准备发送文件的目标用户的响应, 开始上传文件
         case process.I_FILE_RESPONSE_ACCEPT_TRANSPORT:
-            try{
             fingerprint = data.msg_content.fingerprint;
             queue = process.uploadQueues[sender];
             queue.uploadFile(fingerprint);
             process.fileTransportWindow.view.renderMemo(fingerprint, sender, data.msg_type);
-            }catch(ex){
-                console.log(ex.message);
-            }
         break;
+        //拒绝用户传送文件的请求
         case process.I_FILE_RESPONSE_REFUSE_TRANSPORT:
             break;
-        //服务器通知其他用户发送的文件已接受，通知客户端拉取
+        //服务器通知其他用户发送的某文件块已传输完成，通知客户端拉取
         case process.I_FILE_RANGE_CAN_DOWNLOAD:
             fingerprint = data.msg_content.fingerprint;
             var sid = sender + '_' + fingerprint;
@@ -489,6 +487,18 @@ var MainWindowView = Backbone.View.extend({
             _: _
         });
         this.$conferenceList.html(_template);
+        //加载离线消息的提示
+        //获取离线消息
+        var messages = this.window.localCache.get('messages');
+        _.each(messages, function(msg, id){
+            //联系人和会话同时显示未读离线消息
+            if(process.contacts.hasOwnProperty(id)){
+                view.showUnreadMessage(process.contacts[id], process.I_PRIVATE_CHAT_MESSAGE); 
+            }
+            if(process.conferences.hasOwnProperty(id)){
+                view.showUnreadMessage(process.conferences[id], process.I_GROUP_CHAT_MESSAGE); 
+            }
+        });
     },
     render: function(){
         var template = this.window.DocumentTemplate.main_tpl.join('');

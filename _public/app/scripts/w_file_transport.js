@@ -28,7 +28,10 @@ var FileTransportWindowView = Backbone.View.extend({
         var split_size = process.I_FILE_RANGE;
         var $actionImgs = this.getActionImgs(user_id, fingerprint);
         if(type === 'upload'){
-        
+            //离线上传，//需要告诉服务器类型, 一定是离线的，对应用户不接受不下载
+            queue = process.uploadQueues[user_id];
+            queue.uploadFile(fingerprint);
+            process.fileTransportWindow.view.renderMemo(fingerprint, user_id, process.I_FILE_OFFLINE_TRANSPORT);
         }else{
             //触发保存按钮，增强用户体验
             if(!process.downloadQueues.hasOwnProperty(sid)){
@@ -156,6 +159,9 @@ var FileTransportWindowView = Backbone.View.extend({
         switch(msg_type){
             case process.I_FILE_RESPONSE_ACCEPT_TRANSPORT:
                 memo = sender + '正在接收文件';
+            break;
+            case process.I_FILE_OFFLINE_TRANSPORT:
+                memo = '您正在给' + sender + '发送离线文件';
             break;
         }
         var $fingerprint = this.$el.find('[id="' + fid + '"]');

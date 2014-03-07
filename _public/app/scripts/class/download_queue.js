@@ -49,7 +49,7 @@ var Queue = Base.extend({
     //写入文件块到文件里
     writePartFile: function(buffer, part){
         var index = part.index;
-        console.log('path:' + this.path);
+        console.log('path:=====>' + this.path);
         var fd = fs.openSync(this.path, 'a+');
         var start = index * this.split_size;
         var writeStream = fs.createWriteStream(this.path, {
@@ -68,12 +68,6 @@ var Queue = Base.extend({
             part.status = 3;
             fs.close(fd);
         });
-        /*fs.write(fd, buffer, 0, buffer.length, position, function(err, buffer){
-            console.log('part ' + (index) +' write ok!!!');
-            part.status = 3;
-            fs.closeSync(fd);
-        });
-        */
     },
     //拉取服务器已经下载好的文件
     downloadPartFile: function(path, part){

@@ -27,6 +27,7 @@ var EventHandler = {
         }else{
             body || (body = '');
         }
+        try{
         request.post({
             url: url,
             headers: headers,
@@ -39,6 +40,7 @@ var EventHandler = {
             }
             if(type === 'stream'){
                 ret = res;
+                console.log(res);
                 if(parseInt(res.headers.err_code, 10) !== 0){
                     //重新请求，受重试次数限制
                     if(params.retryTimes !== 0){
@@ -64,6 +66,9 @@ var EventHandler = {
                 params.callback(ret);
             }
         });
+        }catch(ex){
+            console.log(ex.message);
+        }
     },
     //用户登录事件
     loginAction: function(event, callback){
