@@ -257,7 +257,7 @@ var MainWindowView = Backbone.View.extend({
             process.conferenceWindow[id].appWindow.focus();
             return;
         }
-        var topic_ids = this.window.localCache.get('topic_ids');
+        var topic_ids = this.window.localCache.get('topic_ids') || {};
         var topic_id = topic_ids && topic_ids[id];
         //获取topic再打开窗口
         var _openWindow = function(topic_id){
