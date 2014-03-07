@@ -164,7 +164,6 @@ var MainWindowView = Backbone.View.extend({
         var el, path;
         el = e.currentTarget;
         path = el.value;
-        try{
         this.currentFirstData.msg_content.path = path;
         this.currentQueue.initFirstData(this.currentFirstData);
         this.currentQueue.initTimer();
@@ -182,9 +181,6 @@ var MainWindowView = Backbone.View.extend({
         var messageBody = JSON.stringify(body);
         process.sockjs.send(messageBody);
         el.value = '';
-        }catch(ex){
-            console.log(ex.message);
-        }
     },
     contextmenuConference:function(e){
         var $el = $(e.currentTarget);
@@ -278,8 +274,8 @@ var MainWindowView = Backbone.View.extend({
                 width: 640,
                 height: 440,
                 position: 'left',
-                frame: true,
-                toolbar: true
+                frame: false,
+                toolbar: false 
             });
         };
         if(!topic_id){

@@ -56,6 +56,6 @@ process.downloadQueues = {};
 process.uploadQueues = {};
 
 //整体http连接数控制
-process.I_LIMIT_HTTP_CONNECT = 6; //chrome 允许同时进行的http连接数为6
+process.I_LIMIT_HTTP_CONNECT = 5; //chrome 允许同时进行的http连接数为6
 process.I_HTTP_CONNECT_COUNT = 0; //实际连接数
 

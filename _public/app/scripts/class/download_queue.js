@@ -134,7 +134,7 @@ var Queue = Base.extend({
         });
         console.log(queue.leftParts);
         //画进度条, 只划分块的进度
-        if(this.loadedPart < loaded_part){
+        if(this.loadedPart < loaded_part && loaded_part > 0){
             this.drawProcessBar(loaded_part, Date.now());
             this.loadedPart = loaded_part;
         }

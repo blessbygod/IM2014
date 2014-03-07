@@ -83,7 +83,7 @@ var FileTransportWindowView = Backbone.View.extend({
     getActionImgs: function(id, fingerprint, selector){
         var fid = id + '_' + fingerprint;
         selector ||(selector = '.confirm, .cancel');
-        return this.$el.find('[id=""' + fid + '""]').find(selector);
+        return this.$el.find('[id="' + fid + '"]').find(selector);
     },
     initialize: function(){
             this.window = this.options.window;
@@ -129,22 +129,26 @@ var FileTransportWindowView = Backbone.View.extend({
     },
     renderProcessing: function(id, fingerprint,total_size, loaded_size, speed, leftTime){
         var fid = id + '_' + fingerprint;
-         var $fingerprint = this.$el.find('[id="' + fid + '"]');
-         var $actionImgs = this.getActionImgs(id, fingerprint); 
-         var $info = $fingerprint.find('.info');
-         var $loading = $fingerprint.find('.process_loading');
-         var $rate = $fingerprint.find('.process_rate');
-         var $speed = $fingerprint.find('.speed');
-         var $leftTime = $fingerprint.find('.left_time');
-         var process = ((loaded_size / total_size) * 100).toFixed(2) + '%';
-         $rate.html(process);
-         $loading.width(process);
-         $speed.html(speed);
-         $leftTime.html(leftTime);
-         if(process === 100.00){
-             $info.html('文件已经下载完成');
-             $actionImgs.hide();
-         }
+        var $fingerprint = this.$el.find('[id="' + fid + '"]');
+        var type = $fingerprint.data('type');
+        var $actionImgs = this.getActionImgs(id, fingerprint); 
+        var $info = $fingerprint.find('.dynamic_info');
+        var $loading = $fingerprint.find('.process_loading');
+        var $rate = $fingerprint.find('.process_rate');
+        var $speed = $fingerprint.find('.speed');
+        var $leftTime = $fingerprint.find('.left_time');
+        var process = (loaded_size / total_size) * 100;
+        var process_show = process.toFixed(2) + '%';
+        $rate.html(process_show);
+        $loading.width(process);
+        $speed.html(speed);
+        $leftTime.html(leftTime);
+        console.log(process);
+        if(process === 100){
+            var action_text = type === 'upload' ? '上传' : '下载';
+            $info.html('文件已经' + action_text + '完成');
+            $actionImgs.hide();
+        }
     },
     renderMemo: function(fingerprint, sender, msg_type){
         var memo = '';

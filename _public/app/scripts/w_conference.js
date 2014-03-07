@@ -61,35 +61,18 @@ var ConferenceWindowView = Backbone.View.extend({
     },
     transportFile: function(e){
         console.log('drop on input or change input');
-        //请求上传， 响应再传
-        var files = e.target.files;
+        var files = [];
+        _.each(e.target.files, function(file){
+            console.log(file);
+            files.push(file);
+        });
         //上传队列管理
         if(!process.uploadQueues.hasOwnProperty(this.id)){
             process.uploadQueues[this.id] = new Queue(this, gui, files);
         }else{
             process.uploadQueues[this.id].pushFile(files);
         }
-        //this.transportFiles(e.target.files);
         e.target.value = '';
-    },
-    transportFiles: function(files){
-        var view = this;
-        //计算每个文件的md5值
-        _.each(files, function(file){
-            var stream = fs.ReadStream(file.path);
-            var md5 = _crypto.createHash('md5');
-            var sdate = new Date();
-            stream.on('data', function(chunk){
-                md5.update(chunk);
-            });
-            stream.on('end', function(){
-                var fingerprint = md5.digest('hex');
-                logger.info(fingerprint);
-                var edate = new Date();
-                console.log((edate-sdate)/1000);
-                view.readFileBuffer(file, 0, fingerprint);
-            });
-        });
     },
     dropOnBody: function(e){
         console.log('drop on...');
