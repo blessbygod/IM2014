@@ -42,10 +42,15 @@ process.sockjs.onmessage = function(e){
     var $userList = process.mainWindow.view.$userList;
     var $conferenceList = process.mainWindow.view.$conferenceList;
     var id = data.topic_id;
-    var contact = process.conferences[id];
+    var contact = null;
+    if(process.conferences && process.conferences.hasOwnProperty(id)){
+        contact = process.conferences[id]; 
+    }
     if(data.msg_type === process.I_PRIVATE_CHAT_MESSAGE){
         id = sender;
-        contact = process.contacts[id];
+        if(process.contacts && process.contacts.hasOwnProperty(id)){
+             contact = process.contacts[id];
+        }
     }
     switch(data.msg_type){
         //用户上线
@@ -69,7 +74,9 @@ process.sockjs.onmessage = function(e){
                 //process.mainWindow.trayIconFlashOnMessage(contact);
                 //process.mainWindow.view.userFlashOnMessage(contact);
                 //会话列表在离线消息前已经加载
-                process.mainWindow.view.showUnreadMessage(contact, data.msg_type);
+                if(contact){
+                    process.mainWindow.view.showUnreadMessage(contact, data.msg_type);
+                }
             }
             //1.2.2 把所有消息都保存到本地，客户端退出时清除
             process.mainWindow.EventHandler.saveMessages(process.mainWindow, data, id);
@@ -248,6 +255,8 @@ var MainWindowView = Backbone.View.extend({
             contact = process.conferences[id];
         }
         contact.type = type;
+        var selector = 'li' + utils.getDataIdSelector(id);
+        $(selector).find('.unread_messages_count').text('').removeClass('msg_tips');
         //清除闪动图标,清除消息计数
         if(process.conferenceWindow && process.conferenceWindow[id]){
             //打开或者切换到当前聊天对象的会话窗口
@@ -261,8 +270,6 @@ var MainWindowView = Backbone.View.extend({
         var _openWindow = function(topic_id){
             if(view.unreadMessages.hasOwnProperty(id)){
                 delete view.unreadMessages[id];
-                var selector = 'li' + utils.getDataIdSelector(id);
-                $(selector).find('.unread_messages_count').text('').removeClass('msg_tips');
             }
             if(topic_id){
                 this.contact.topic_id = topic_id;
@@ -489,16 +496,20 @@ var MainWindowView = Backbone.View.extend({
         this.$conferenceList.html(_template);
         //加载离线消息的提示
         //获取离线消息
-        var messages = this.window.localCache.get('messages');
-        _.each(messages, function(msg, id){
-            //联系人和会话同时显示未读离线消息
-            if(process.contacts.hasOwnProperty(id)){
-                view.showUnreadMessage(process.contacts[id], process.I_PRIVATE_CHAT_MESSAGE); 
-            }
-            if(process.conferences.hasOwnProperty(id)){
-                view.showUnreadMessage(process.conferences[id], process.I_GROUP_CHAT_MESSAGE); 
-            }
-        });
+        if(this.isRenderOfflineMessage){
+            var messages = this.window.localCache.get('messages');
+            _.each(messages, function(msg, id){
+                //联系人和会话同时显示未读离线消息
+                if(process.contacts.hasOwnProperty(id)){
+                    view.showUnreadMessage(process.contacts[id], process.I_PRIVATE_CHAT_MESSAGE); 
+                    return;
+                }
+                if(process.conferences.hasOwnProperty(id)){
+                    view.showUnreadMessage(process.conferences[id], process.I_GROUP_CHAT_MESSAGE); 
+                }
+            });
+            this.isRenderOfflineMessage = false;
+        }
     },
     render: function(){
         var template = this.window.DocumentTemplate.main_tpl.join('');
@@ -506,6 +517,7 @@ var MainWindowView = Backbone.View.extend({
         this.initJQueryElement();
         //请求推荐联系人列表, 然后获取会话列表
         this.isRenderConference = true;
+        this.isRenderOfflineMessage = true;
         this.window.EventHandler.getContacts(_.bind(this.renderContactList, this));
     },
     destroy: function(){
