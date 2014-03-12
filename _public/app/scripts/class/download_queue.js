@@ -34,11 +34,23 @@ var Queue = Base.extend({
         this.startTime = Date.now();
         //this.pushPartFile(firstdata, true);
     },
+    //主动拉取离线文件
+    initOfflineQueue: function(file){
+        var queue = this;
+        var fingerprint = file.fingerprint;
+        var count = Math.ceil(file.size / this.split_size);
+        _.each(count, function(index){
+            var part = {};
+            part.index = index;
+            queue.queue.push(part);
+        });
+        this.initTimer();
+    },
     //推入队列
     pushPartFile: function(data){
         var part = {};
         part.status = 0;
-        part.fingerprint = data.msg_content.part_fingerprint;
+        //part.part_fingerprint = data.msg_content.part_fingerprint;
         part.index = data.msg_content.index;
         //可能第一块后过来，这块还得再改更稳妥的方案
         if(part.index === 0){
@@ -49,7 +61,6 @@ var Queue = Base.extend({
     //写入文件块到文件里
     writePartFile: function(buffer, part){
         var index = part.index;
-        console.log('path:=====>' + this.path);
         var fd = fs.openSync(this.path, 'a+');
         var start = index * this.split_size;
         var writeStream = fs.createWriteStream(this.path, {

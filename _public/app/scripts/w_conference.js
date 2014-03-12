@@ -60,10 +60,8 @@ var ConferenceWindowView = Backbone.View.extend({
         });
     },
     transportFile: function(e){
-        console.log('drop on input or change input');
         var files = [];
         _.each(e.target.files, function(file){
-            console.log(file);
             files.push(file);
         });
         //上传队列管理

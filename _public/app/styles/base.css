@@ -240,11 +240,16 @@ label{
     overflow: auto;
 }
 .select_members{
+    float: left;
     height: 240px;
+    border: 1px solid silver;
 }
 .selected_members{
     margin-top: 20px;
-    height: 140px;
+    margin-left: 20px;
+    height: 240px;
+    border: 1px solid blue;
+
 }
 
 .selected_members ul li{
