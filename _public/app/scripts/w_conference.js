@@ -86,7 +86,7 @@ var ConferenceWindowView = Backbone.View.extend({
     },
     //会话聊天记录的实时显示
     appendToConversation: function(sender, content, timestamp){
-        var message = this.getSendMessage(sender, _.escape(content), timestamp);
+        var message = this.getSendMessage(sender, content, timestamp);
         var html = this.$conversation.html();
         var updateHtml = html + '<br/>' + message;
         this.$conversation.html(updateHtml);
@@ -145,10 +145,10 @@ var ConferenceWindowView = Backbone.View.extend({
     },
     //以后切换为编辑器
     getContent: function(){
-        return this.$textarea.val().trim();
+        return this.$textarea.getContent();
     },
     setContent: function(val){
-        this.$textarea.val(val);
+        this.$textarea.setContent(val);
     },
     initialize: function(){
         //当前窗口的实例
@@ -172,8 +172,9 @@ var ConferenceWindowView = Backbone.View.extend({
         this.$members = this.$el.find('.conference_members');
         this.$file = this.$el.find('.transport_file');
     },
-    initWYSIWYG: function(){
+    initSEditor: function(){
         //暂时使用纯文本的
+        this.$textarea.SEditor({});
     },
     initOfflineMessages: function(){
         var view = this;
@@ -213,7 +214,7 @@ var ConferenceWindowView = Backbone.View.extend({
         var _template = _.template(template, this);
         this.$el.html(_template);
         this.initJQueryElement();
-        this.initWYSIWYG();
+        this.initSEditor();
         this.$textarea.focus();
         this.initOfflineMessages();
         this.initTopicMembers();
@@ -259,7 +260,7 @@ if(!process.currentConversationContact){
 
 //aspect before, after 只能在事件执行前监听；
 //通知其他窗口的事件订阅
-document.body.onkeyup = function(e){
+document.body.onkeyup = process.conferenceWindow[id].view.$textarea.doc.body.onkeyup = function(e){
     if(e.keyCode === 13){
         if(!e.ctrlKey)
             process.conferenceWindow[id].view.$send.click();

@@ -277,7 +277,7 @@ var MainWindowView = Backbone.View.extend({
             process.currentConversationContact = this.contact;
             gui.Window.open('w_conference.html', {
                 width: 640,
-                height: 440,
+                height: 480,
                 position: 'left',
                 frame: false,
                 toolbar: false 
