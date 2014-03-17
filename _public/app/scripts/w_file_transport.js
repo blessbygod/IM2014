@@ -146,7 +146,6 @@ var FileTransportWindowView = Backbone.View.extend({
         $loading.width(process);
         $speed.html(speed);
         $leftTime.html(leftTime);
-        console.log(process);
         if(process === 100){
             var action_text = type === 'upload' ? '上传' : '下载';
             $info.html('文件已经' + action_text + '完成');

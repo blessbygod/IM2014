@@ -41,6 +41,31 @@ label{
     height: 540px;
     overflow: auto;
 }
+
+/* tab 标签页 开始*/
+.tab_header{
+    height: 41px;
+    width:100%;
+    border-bottom:1px solid #dddddd;
+}
+.tab_tips li{
+    cursor: pointer;
+    float: left;
+    height: 30px;
+    line-height: 30px;
+    width: 65px;
+}
+.tab_tips_current{·
+    background-color:#ffffff !important;
+    border-radius: 5px 5px 5px 5px;
+    border: 1px solid #dddddd;
+    border-bottom:1px solid #ffffff;
+    font-weight:bold;
+    background-color: #FFFFFF !important;
+}
+
+/* tab 标签页 结束*/
+
 .offline{
     color: #aaa;
 }
